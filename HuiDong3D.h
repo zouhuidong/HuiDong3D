@@ -84,14 +84,21 @@ struct Rectangle3D
 /** @brief 3D 多边形（带颜色） */
 class Polygon3D
 {
-public:
+private:
 
-	Polygon3D()
+	void init()
 	{
 		pPoints = new Point3D[POLYGON_MAX_SIDES];
 		memset(pPoints, 0, sizeof Point3D * POLYGON_MAX_SIDES);
 		nPointsNum = 0;
 		color = 0;
+	}
+
+public:
+
+	Polygon3D()
+	{
+		init();
 	}
 
 	/**
@@ -104,22 +111,68 @@ public:
 	*/
 	Polygon3D(const Point3D* p, int n, Color c)
 	{
-		Polygon3D();
-		memcpy(pPoints, p, sizeof Point3D * n);
+		init();
+		for (int i = 0; i < n; i++)
+			pPoints[i] = p[i];
 		nPointsNum = n;
 		color = c;
 	}
 
 	~Polygon3D()
 	{
-		if (pPoints) delete[] pPoints;
+		//if (pPoints) delete[] pPoints;
+	}
 
+	/*Polygon3D& operator= (const Polygon3D& p)
+	{
+		for (int i = 0; i < p.nPointsNum; i++)
+			pPoints[i] = p.pPoints[i];
+		nPointsNum = p.nPointsNum;
+		color = p.color;
+		return *this;
+	}*/
+
+	bool operator< (Polygon3D& p)
+	{
+		return GetCenterZ() < p.GetCenterZ();
+	}
+
+	bool operator>= (Polygon3D& p)
+	{
+		return GetCenterZ() >= p.GetCenterZ();
+	}
+
+	/**
+	 * @brief 获取此多边形的 z 层次的中心
+	*/
+	double GetCenterZ()
+	{
+		if (nPointsNum <= 0) return 0;
+		double min = pPoints[0].z, max = pPoints[0].z;
+		for (int i = 0; i < nPointsNum; i++)
+		{
+			if (pPoints[i].z < min)
+			{
+				min = pPoints[i].z;
+			}
+			else if (pPoints[i].z > max)
+			{
+				max = pPoints[i].z;
+			}
+		}
+		return min + (max - min) / 2;
 	}
 
 	Point3D* pPoints;	/** @brief 多边形顶点 */
 	int nPointsNum;			/** @brief 多边形顶点数量 */
 	Color color;			/** @brief 多边形填充颜色 */
 };
+
+//bool cmp(Polygon3D& a, Polygon3D& b)
+//{
+//	return a.GetCenterZ() < b.GetCenterZ();
+//}
+
 /**
  * @brief		3D 物体的姿态
  * @attention	姿态的旋转角度都是基于物体自身的，并非相对于旋转原点
@@ -265,6 +318,22 @@ inline void CloseDrawingDevice()
 }
 
 /**
+ * @brief 获取绘图设备宽度
+*/
+inline int GetDrawingDeviceWidth()
+{
+	return getwidth();
+}
+
+/**
+ * @brief 获取绘图设备高度
+*/
+inline int GetDrawingDeviceHeight()
+{
+	return getheight();
+}
+
+/**
  * @brief		绘制点
  * @param[in]	x: 绘制位置
  * @param[in]	y: 绘制位置
@@ -291,23 +360,48 @@ inline void DrawPixel(Point2D p, Color c)
 }
 
 /**
+ * @brief		将场景坐标投影出的 2D 坐标转为居中的屏幕坐标
+ * @param[in]	p: 原坐标
+ * @param[in]	device_offset_x: 转换为的屏幕坐标的 x 轴的偏移量
+ * @param[in]	device_offset_y: 转换为的屏幕坐标的 y 轴的偏移量
+ * @return		返回转换后的屏幕坐标
+ *
+ * @note
+ * 场景坐标投影出的 2D 坐标向右为 x 轴正方向，向上为 y 轴正方向；
+ * 绘图设备的坐标（屏幕坐标）以向右为 x 轴正方向，向下为 y 轴正方向；
+ * 此函数将场景坐标的 2D 投影坐标转为屏幕坐标，并且移动到屏幕中心。
+ * 可以通过设置 device_offset_x 和 device_offset_y 设置图像在
+ * 屏幕上输出时的坐标偏移量（偏移是基于屏幕中心的）
+ *
+*/
+inline Point2D ConvertScenePointToScreenPoint(Point2D p, int device_offset_x = 0, int device_offset_y = 0)
+{
+	return { p.x + GetDrawingDeviceWidth() / 2 + device_offset_x ,GetDrawingDeviceHeight() - p.y - GetDrawingDeviceHeight() / 2 + device_offset_y };
+}
+
+/**
  * @brief		绘制填充多边形
  * @param[in]	p: 3D 多边形
+ * @param[in]	offset_x: 输出的图像的 x 坐标偏移
+ * @param[in]	offset_y: 输出的图像的 y 坐标偏移
  * @param[in]	grid: 网格颜色，为负数表示不绘制网格
  * @attention	只取多边形的 x,y 坐标绘制到屏幕
- */
-inline void DrawFillPolygon(Polygon3D& p, Color grid = -1)
+*/
+inline void DrawFillPolygon(Polygon3D& p, int offset_x = 0, int offset_y = 0, Color grid = -1)
 {
 	if (p.nPointsNum <= 0) return;
 
 	POINT* pPoints = new POINT[p.nPointsNum];
 	for (int j = 0; j < p.nPointsNum; j++)
-		pPoints[j] = { (int)p.pPoints[j].x,(int)p.pPoints[j].y };
+	{
+		Point2D pp = ConvertScenePointToScreenPoint({ p.pPoints[j].x,p.pPoints[j].y }, offset_x, offset_y);
+		pPoints[j] = { (long)pp.x,(long)pp.y };
+	}
 
 	//// easyx 绘制
 
 	// 有填充颜色，需要输出	
-	if (p.color > 0)
+	if (p.color >= 0)
 	{
 		// 单点
 		if (p.nPointsNum == 1)
@@ -336,17 +430,12 @@ inline void DrawFillPolygon(Polygon3D& p, Color grid = -1)
 		if (grid >= 0)
 		{
 			setlinecolor((COLORREF)grid);
+			setfillcolor(WHITE);
 			polygon(pPoints, p.nPointsNum);
 		}
 	}
 
 	delete[] pPoints;
-}
-
-/** @brief 比较 Polygon3D 的深度 */
-inline bool compPolygonDepth(const Polygon3D a, const Polygon3D b)
-{
-	return a.pPoints[0].z > b.pPoints[0].z;
 }
 
 /**
@@ -358,20 +447,20 @@ inline void SortPolygons(Polygon3D* s, int l, int r)
 	if (l < r)
 	{
 		int i = l, j = r;
-		Polygon3D x = s[l];
+		Polygon3D* x = &s[l];
 		while (i < j)
 		{
-			while (i < j && s[j].pPoints[0].z >= x.pPoints[0].z)
+			while (i < j && s[j].GetCenterZ() >= x->GetCenterZ())
 				j--;
 			if (i < j)
 				s[i++] = s[j];
 
-			while (i < j && s[i].pPoints[0].z < x.pPoints[0].z)
+			while (i < j && s[i].GetCenterZ() < x->GetCenterZ())
 				i++;
 			if (i < j)
 				s[j--] = s[i];
 		}
-		s[i] = x;
+		s[i] = *x;
 		SortPolygons(s, l, i - 1);
 		SortPolygons(s, i + 1, r);
 	}
@@ -383,10 +472,65 @@ inline void SortPolygons(Polygon3D* s, int l, int r)
  * @param[in]		size: 数组大小
  * @return			不返回值，排序的结果存放在数组中
 */
-inline void SortPolygons(Polygon3D *s, int size)
+inline void SortPolygons(Polygon3D* s, int size)
 {
 	SortPolygons(s, 0, size - 1);
 }
+
+
+
+//
+////
+//inline int Paritition(Polygon3D A[], int low, int high) {
+//	Polygon3D& pivot = A[low];
+//	while (low < high) {
+//		while (low < high && GetPolygonCenterZ(A[high]) >= GetPolygonCenterZ(pivot)) {
+//			--high;
+//		}
+//		A[low] = A[high];
+//		while (low < high && GetPolygonCenterZ(A[low]) <= GetPolygonCenterZ(pivot)) {
+//			++low;
+//		}
+//		A[high] = A[low];
+//	}
+//	A[low] = pivot;
+//	return low;
+//}
+//
+//inline void QuickSort(Polygon3D A[], int low, int high)
+//{
+//	if (low < high) {
+//		int pivot = Paritition(A, low, high);
+//		QuickSort(A, low, pivot - 1);
+//		QuickSort(A, pivot + 1, high);
+//	}
+//}
+
+template <typename T>
+void quick_sort_recursive(T arr[], int start, int end) {
+	if (start >= end)
+		return;
+	T mid = arr[end];
+	int left = start, right = end - 1;
+	while (left < right) { //在整个范围内搜寻比枢纽元值小或大的元素，然后将左侧元素与右侧元素交换
+		while (arr[left] < mid && left < right) //试图在左侧找到一个比枢纽元更大的元素
+			left++;
+		while (arr[right] >= mid && left < right) //试图在右侧找到一个比枢纽元更小的元素
+			right--;
+		std::swap(arr[left], arr[right]); //交换元素
+	}
+	if (arr[left] >= arr[end])
+		std::swap(arr[left], arr[end]);
+	else
+		left++;
+	quick_sort_recursive(arr, start, left - 1);
+	quick_sort_recursive(arr, left + 1, end);
+}
+template <typename T> //整數或浮點數皆可使用,若要使用物件(class)時必須設定"小於"(<)、"大於"(>)、"不小於"(>=)的運算子功能
+void quick_sort(T arr[], int len) {
+	quick_sort_recursive(arr, 0, len - 1);
+}
+
 
 /** @brief 3D 物体 */
 class Object3D
@@ -814,9 +958,9 @@ public:
 		pCamera = { 0,0,-100 };
 		attitudeCamera = { 0,0,0 };
 
-		nViewportWidth = 500;
-		nViewportHeight = 500;
-		nFocalLength = 200;
+		nViewportWidth = 200;
+		nViewportHeight = 200;
+		nFocalLength = 100;
 	}
 
 	~Scence3D()
@@ -1012,12 +1156,13 @@ public:
 	 * @param[in]	offset_y: 输出到屏幕的图像的 y 坐标偏移
 	 * @return		返回绘制耗时（单位：秒）
 	*/
-	double Draw(int offset_x = 0, int offset_y = 0)
+	double Draw(int offset_x = 0, int offset_y = 0, Color grid = -1)
 	{
 
 		/*
 		 *	相机视口
 		 *
+		 * 
 		 *		正视图
 		 *
 		 *            ↑ y ( viewport coordinate system )
@@ -1056,7 +1201,7 @@ public:
 		 *
 		 */
 
-		TIMEC_INIT;
+		 //TIMEC_INIT;
 
 		int t = clock();
 
@@ -1065,6 +1210,9 @@ public:
 
 		int nAllPolygonsNum = GetPolygonsNum();
 		Polygon3D* pAllPolygons = GetPolygons();					// 所有多边形
+		
+		/*
+		
 		Polygon3D* pFilterWide = new Polygon3D[nAllPolygonsNum];	// 泛筛选结果以及旋转后结果
 		Polygon3D* pFilterNarrow = new Polygon3D[nAllPolygonsNum];	// 狭筛选结果
 		Polygon3D* pFilterDepth = new Polygon3D[nAllPolygonsNum];	// 深度筛选结果
@@ -1081,8 +1229,8 @@ public:
 			}
 		}
 
-		// 选取相机视口的较长边 (l)，求较长边和焦距组成的平面的对角线长度，即为 h
-		int l = nViewportWidth > nViewportHeight ? nViewportWidth : nViewportHeight;
+		// 选取相机视口的较长边 (l)，求较长边的一半和焦距组成的平面的对角线长度，即为 h
+		int l = nViewportWidth > nViewportHeight ? nViewportWidth / 2 : nViewportHeight / 2;
 		int h = (int)sqrt(nFocalLength * nFocalLength + l * l);
 
 		int lx = nViewportWidth / 2, ly = nViewportHeight / 2;					// limit_x and limit_y
@@ -1201,27 +1349,42 @@ public:
 		TIMEC_BEGIN;
 
 		// 完成所有筛选，将筛选结果按 z 轴层次排序以决定绘制顺序
-		SortPolygons(pFilterDepth, nFilterDepthNum);
+		//SortPolygons(pFilterDepth, nFilterDepthNum);
 
 		TIMEC_END;
 		printf("绘制 ");
 		TIMEC_BEGIN;
 
+		*/
+
+		//SortPolygons(pAllPolygons, nAllPolygonsNum);
+		quick_sort(pAllPolygons, nAllPolygonsNum);
+		//sort(pAllPolygons, pAllPolygons + nAllPolygonsNum, cmp);
+
+		//mysort(pAllPolygons, nAllPolygonsNum);
+
 		// 绘制
-		for (int i = nFilterDepthNum - 1; i >= 0; i--)
+		for (int i = /*nFilterDepthNum*/nAllPolygonsNum - 1; i >= 0; i--)
 		{
-			DrawFillPolygon(pFilterDepth[i]);
+			DrawFillPolygon(pAllPolygons[i], offset_x, offset_y, grid);
+			//DrawFillPolygon(pFilterDepth[i], offset_x, offset_y, grid);
+			//DrawFillPolygon(pAllPolygons[i], offset_x, offset_y, grid);
 		}
 
 		TIMEC_END;
 
 		delete[] pAllPolygons;
-		delete[] pFilterWide;
+		/*delete[] pFilterWide;
 		delete[] pFilterNarrow;
 		delete[] pFilterDepth;
-		for(int i=0;i< nViewportWidth;i++)
+		for (int i = 0; i < nViewportWidth; i++)
 			delete[] pDepthMap[i];
 		delete[] pDepthMap;
+		pAllPolygons = NULL;
+		pFilterWide = NULL;
+		pFilterNarrow = NULL;
+		pFilterDepth = NULL;
+		pDepthMap = NULL;*/
 
 		return (double)(clock() - t) / CLOCKS_PER_SEC;
 	}

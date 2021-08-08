@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "HuiDong3D.h"
 
+#include <vector>
+using namespace std;
+
 /**
  * @brief		读取 VTK 文件的点
  * @param[in]	strFile: 文件路径
@@ -21,7 +24,7 @@ Polygon3D* ReadVTK(const char* strFile, int* pNum, int zoom = 1000)
 	// 读去多余的字符串
 	char strTemp[1024] = { 0 };
 	for (int i = 0; i < 4; i++)
-		fgets(strTemp,1024,fp);
+		fgets(strTemp, 1024, fp);
 
 	// 读点
 	int nPointsNum = 0;
@@ -36,8 +39,9 @@ Polygon3D* ReadVTK(const char* strFile, int* pNum, int zoom = 1000)
 		if (fscanf_s(fp, "%f %f %f", &x, &y, &z))
 		{
 			// 填白色
-			int grey = 255 - abs((int)(y * 800));
+			//int grey = 255 - abs((int)(y * 800));
 			//if (grey < 0) grey = 0;
+			int grey = 255;
 			Color c = RGB(grey, grey, grey);
 			pPoints[i] = { x * zoom,y * zoom,z * zoom,c };
 		}
@@ -67,7 +71,7 @@ Polygon3D* ReadVTK(const char* strFile, int* pNum, int zoom = 1000)
 			pPolygons[i].pPoints[0] = pPoints[a];
 			pPolygons[i].pPoints[1] = pPoints[b];
 			pPolygons[i].pPoints[2] = pPoints[c];
-			pPolygons[i].color = pPoints[i].color;
+			pPolygons[i].color =/* pPoints[a].color*/-1;
 		}
 		else
 		{
@@ -110,6 +114,100 @@ ColorPoint3D* ReadImageFile(LPCTSTR strFile, int* pNum)
 	return pPoints;
 }
 
+Polygon3D* GetPillar()
+{
+	Polygon3D* pPolygons = new Polygon3D[6];
+	Point3D pPoints[8] = {
+		{0,300,0}, {200,300,0}, {200,300,200}, {0,300,200},
+		{0,-100,200}, {200,-100,200}, {0,-100,0}, {200,-100,0}
+	};
+
+	pPolygons[0].nPointsNum = 4;
+	pPolygons[0].pPoints[0] = pPoints[0];
+	pPolygons[0].pPoints[1] = pPoints[1];
+	pPolygons[0].pPoints[2] = pPoints[7];
+	pPolygons[0].pPoints[3] = pPoints[6];
+	pPolygons[0].color = GREEN;
+
+	pPolygons[1].nPointsNum = 4;
+	pPolygons[1].pPoints[0] = pPoints[0];
+	pPolygons[1].pPoints[1] = pPoints[3];
+	pPolygons[1].pPoints[2] = pPoints[4];
+	pPolygons[1].pPoints[3] = pPoints[6];
+	pPolygons[1].color = GREEN;
+
+	pPolygons[2].nPointsNum = 4;
+	pPolygons[2].pPoints[0] = pPoints[2];
+	pPolygons[2].pPoints[1] = pPoints[3];
+	pPolygons[2].pPoints[2] = pPoints[4];
+	pPolygons[2].pPoints[3] = pPoints[5];
+	pPolygons[2].color = GREEN;
+
+	pPolygons[3].nPointsNum = 4;
+	pPolygons[3].pPoints[0] = pPoints[1];
+	pPolygons[3].pPoints[1] = pPoints[2];
+	pPolygons[3].pPoints[2] = pPoints[5];
+	pPolygons[3].pPoints[3] = pPoints[7];
+	pPolygons[3].color = GREEN;
+
+	pPolygons[4].nPointsNum = 4;
+	pPolygons[4].pPoints[0] = pPoints[0];
+	pPolygons[4].pPoints[1] = pPoints[1];
+	pPolygons[4].pPoints[2] = pPoints[2];
+	pPolygons[4].pPoints[3] = pPoints[3];
+	pPolygons[4].color = RED;
+
+	pPolygons[5].nPointsNum = 4;
+	pPolygons[5].pPoints[0] = pPoints[4];
+	pPolygons[5].pPoints[1] = pPoints[5];
+	pPolygons[5].pPoints[2] = pPoints[7];
+	pPolygons[5].pPoints[3] = pPoints[6];
+	pPolygons[5].color = GREEN;
+
+	return pPolygons;
+}
+
+ColorPoint3D* GetTextPoint3D(LPCTSTR str, int x, int y, int z, int* count)
+{
+	IMAGE img(textwidth(str), textheight(str));
+	SetWorkingImage(&img);
+
+	outtextxy(0, 0, str);
+
+	// 上下翻转图像
+	rotateimage(&img, &img, ConvertToRadian(180));
+
+	// 左右翻转图像
+	for (int i = 0; i < getwidth() / 2; i++)
+	{
+		for (int j = 0; j < getheight(); j++)
+		{
+			COLORREF c = getpixel(i,j);
+			putpixel(i, j, getpixel(getwidth() - i, j));
+			putpixel(getwidth() - i, j, c);
+		}
+	}
+
+	ColorPoint3D* p = new ColorPoint3D[getwidth() * getheight()];
+	int index = 0;
+	for (int i = 0; i < getwidth(); i++)
+	{
+		for (int j = 0; j < getheight(); j++)
+		{
+			if (getpixel(i, j) != BLACK)
+			{
+				p[index] = { (double)x + i,(double)y + j,(double)z,WHITE };
+				index++;
+			}
+		}
+	}
+
+	SetWorkingImage();
+
+	*count = index;
+	return &p[0];
+}
+
 int main()
 {
 	InitDrawingDevice(640, 480, 1);
@@ -129,13 +227,51 @@ int main()
 
 	Object3D obj, obj2;
 	obj.AddPolygons(pPolygons, nPolygonsNum);
-	obj.AddPolygons(pPolygons, nPolygonsNum);
-	obj.AddPoints(&pTest, 1);
+	//obj.AddPolygons(pPolygons, nPolygonsNum);
+	//obj.AddPoints(&pTest, 1);
 
 	obj2.AddPoints(&pTest, 1);
 
-	scenceMain.AddObject(obj);
-	scenceMain.AddObject(obj2);
+	delete[] pPolygons;
+
+	//scenceMain.AddObject(obj);
+	//scenceMain.AddObject(obj2);
+
+	Object3D objPillar;
+	objPillar.AddPolygons(GetPillar(), 6);
+
+
+	//致敬 ckj 的 flappy bird 中的柱子（特地将柱子顶面漆成了红色）
+	int nTextPointsNum = 0;
+	ColorPoint3D* pTextPoints = NULL;
+	
+	pTextPoints = GetTextPoint3D(L"致敬 ckj 的 flappy bird 项目", 10, 230, -10, &nTextPointsNum);
+	objPillar.AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;
+
+	pTextPoints = GetTextPoint3D(L"所以，我特地将柱子", 40, 200, -10, &nTextPointsNum);
+	objPillar.AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;
+
+	pTextPoints = GetTextPoint3D(L"顶面漆成了红色", 50, 180, -10, &nTextPointsNum);
+	objPillar.AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;
+
+	pTextPoints = GetTextPoint3D(L"by lovely_huidong~", 10, 120, -10, &nTextPointsNum);
+	objPillar.AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;
+
+	scenceMain.AddObject(objPillar);
+
+	/*ColorPoint3D* pObjPoints = scenceMain.GetObjects()[index_obj1].GetPoints();
+	int num = scenceMain.GetObjects()[index_obj1].GetPointsNum();
+	for (int i = 0; i < num; i++)
+	{
+		if (pObjPoints[i].color != WHITE)
+		{
+			return -1;
+		}
+	}*/
 
 	BeginBatchDraw();
 
@@ -144,7 +280,7 @@ int main()
 
 	while (true)
 	{
-		double fps = 1.0 / scenceMain.Draw(300, 300);
+		double fps = 1.0 / scenceMain.Draw(-100, 100, WHITE);
 
 		wchar_t str[32] = { 0 };
 		wsprintf(str, L"fps: %d", (int)fps);
@@ -162,8 +298,8 @@ int main()
 		{
 			if (old_x != -1)
 			{
-				scenceMain.GetObjects()[0].RotateY(msg.x - old_x);
-				scenceMain.GetObjects()[0].RotateX(msg.y - old_y);
+				scenceMain.GetObjects()[0].RotateY(-(old_x - msg.x));
+				scenceMain.GetObjects()[0].RotateX(-(msg.y - old_y));
 				scenceMain.GetObjects()[0].UpdateRotatedPoints();
 			}
 
