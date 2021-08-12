@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "HuiDong3D.h"
+using namespace HD3D;
 
 #include <vector>
 using namespace std;
@@ -39,9 +40,9 @@ Polygon3D* ReadVTK(const char* strFile, int* pNum, int zoom = 1000)
 		if (fscanf_s(fp, "%f %f %f", &x, &y, &z))
 		{
 			// 填白色
-			//int grey = 255 - abs((int)(y * 800));
+			int grey = 255 - ((int)((y * 12 + z * 3) * 80));
 			//if (grey < 0) grey = 0;
-			int grey = 255;
+			//int grey = 255;
 			Color c = RGB(grey, grey, grey);
 			pPoints[i] = { x * zoom,y * zoom,z * zoom,c };
 		}
@@ -71,7 +72,8 @@ Polygon3D* ReadVTK(const char* strFile, int* pNum, int zoom = 1000)
 			pPolygons[i].pPoints[0] = pPoints[a];
 			pPolygons[i].pPoints[1] = pPoints[b];
 			pPolygons[i].pPoints[2] = pPoints[c];
-			pPolygons[i].color =/* pPoints[a].color*/-1;
+			//pPolygons[i].color = pPoints[a].color;
+			pPolygons[i].color = -1;
 		}
 		else
 		{
@@ -114,6 +116,7 @@ ColorPoint3D* ReadImageFile(LPCTSTR strFile, int* pNum)
 	return pPoints;
 }
 
+// 获取一段 3D 柱子的多边形集合
 Polygon3D* GetPillar()
 {
 	Polygon3D* pPolygons = new Polygon3D[6];
@@ -208,99 +211,113 @@ ColorPoint3D* GetTextPoint3D(LPCTSTR str, int x, int y, int z, int* count)
 	return &p[0];
 }
 
-int main()
+// 获取 3D 柱子物体
+Object3D* GetPillarObject()
 {
-	InitDrawingDevice(640, 480, 1);
+	Object3D* objPillar = new Object3D;
+	objPillar->AddPolygons(GetPillar(), 6);
+
+	// 文字
+	int nTextPointsNum = 0;
+	ColorPoint3D* pTextPoints = NULL;
+
+	/*pTextPoints = GetTextPoint3D(L"文字添加测试", 10, 230, -10, &nTextPointsNum);
+	objPillar.AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;
+
+	pTextPoints = GetTextPoint3D(L"第二行文字", 40, 200, -10, &nTextPointsNum);
+	objPillar.AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;*/
+	
+	pTextPoints = GetTextPoint3D(GetEasyXVer(), 10, 230, -1, &nTextPointsNum);
+	objPillar->AddPoints(pTextPoints, nTextPointsNum);
+	delete[] pTextPoints;
+
+	return objPillar;
+}
+
+// 获取 3D 模型物体
+Object3D* GetModelObject()
+{
+	Object3D* obj = new Object3D;
 
 	// read file
+
 	Polygon3D* pPolygons = NULL;
 	int nPolygonsNum = 0;
-	//pPoints = ReadImageFile(L"./conan.png", &nPointsNum);
-	pPolygons = ReadVTK("./fran_cut.vtk", &nPolygonsNum, 1000);
+	pPolygons = ReadVTK("./fran_cut.vtk", &nPolygonsNum, 1400);
+	//pPolygons = ReadVTK("./bunny.vtk", &nPolygonsNum, 1400);
+	obj->AddPolygons(pPolygons, nPolygonsNum);
 
-	///////  api
+	/*ColorPoint3D* pPoints = NULL;
+	int nPointsNum = 0;
+	pPoints = ReadImageFile(L"./conan.png", &nPointsNum);
+	obj->AddPoints(pPoints, nPointsNum);*/
+
+	return obj;
+}
+
+int main()
+{
+	// 初始化绘图设备
+	InitDrawingDevice(640, 480, 1);
+
+	// 设置绘图设备背景色
+	setbkcolor(RGB(130, 190, 230));
+	cleardevice();
 
 	// 3D 场景
 	Scence3D scenceMain;
+	Scence3D scence2;
 
-	ColorPoint3D pTest = { 10,20,30,GREEN };
+	// 加入物体
+	scenceMain.AddObject(*GetPillarObject());
+	//scenceMain.AddObject(*GetModelObject());
 
-	Object3D obj, obj2;
-	obj.AddPolygons(pPolygons, nPolygonsNum);
-	//obj.AddPolygons(pPolygons, nPolygonsNum);
-	//obj.AddPoints(&pTest, 1);
+	// 移动物体
+	scenceMain.GetObjects()[0].MoveTo({ 0,0,100});
 
-	obj2.AddPoints(&pTest, 1);
+	// 设置相机焦距
+	//scenceMain.SetCameraFocalLength(1000);
 
-	delete[] pPolygons;
+	// 启用 / 禁用 透视投影
+	scenceMain.EnablePerspectiveProjection(true);
 
-	//scenceMain.AddObject(obj);
-	//scenceMain.AddObject(obj2);
+	// 第二个场景
+	scence2.AddObject(*GetModelObject());
 
-	Object3D objPillar;
-	objPillar.AddPolygons(GetPillar(), 6);
-
-
-	//致敬 ckj 的 flappy bird 中的柱子（特地将柱子顶面漆成了红色）
-	int nTextPointsNum = 0;
-	ColorPoint3D* pTextPoints = NULL;
-	
-	pTextPoints = GetTextPoint3D(L"致敬 ckj 的 flappy bird 项目", 10, 230, -10, &nTextPointsNum);
-	objPillar.AddPoints(pTextPoints, nTextPointsNum);
-	delete[] pTextPoints;
-
-	pTextPoints = GetTextPoint3D(L"所以，我特地将柱子", 40, 200, -10, &nTextPointsNum);
-	objPillar.AddPoints(pTextPoints, nTextPointsNum);
-	delete[] pTextPoints;
-
-	pTextPoints = GetTextPoint3D(L"顶面漆成了红色", 50, 180, -10, &nTextPointsNum);
-	objPillar.AddPoints(pTextPoints, nTextPointsNum);
-	delete[] pTextPoints;
-
-	pTextPoints = GetTextPoint3D(L"by lovely_huidong~", 10, 120, -10, &nTextPointsNum);
-	objPillar.AddPoints(pTextPoints, nTextPointsNum);
-	delete[] pTextPoints;
-
-	scenceMain.AddObject(objPillar);
-
-	/*ColorPoint3D* pObjPoints = scenceMain.GetObjects()[index_obj1].GetPoints();
-	int num = scenceMain.GetObjects()[index_obj1].GetPointsNum();
-	for (int i = 0; i < num; i++)
-	{
-		if (pObjPoints[i].color != WHITE)
-		{
-			return -1;
-		}
-	}*/
-
+	// 开始批量绘图
 	BeginBatchDraw();
 
+	// 获取鼠标消息
 	ExMessage msg;
 	int old_x = -1, old_y = -1;
 
+	// 当前活动场景的指针
+	Scence3D* pScence = &scenceMain;
+
+	// 消息主循环
 	while (true)
 	{
-		double fps = 1.0 / scenceMain.Draw(-100, 100, WHITE);
+		// 调用场景渲染器，并获取渲染时间
+		double fps = 1.0 / pScence->Render(-300, -200, { 0.6,0.6 }, WHITE);
 
+		// 输出帧率
 		wchar_t str[32] = { 0 };
 		wsprintf(str, L"fps: %d", (int)fps);
 		outtextxy(0, 0, str);
 
-		// temp
-		/*FlushBatchDraw();
-		cleardevice();
-		scenceMain.GetObjects()[0]->RotateX(1);
-		scenceMain.GetObjects()[0]->UpdateRotatePoints();
-		continue;*/
-
+		// 获取用户操作事件
 		msg = getmessage(EM_MOUSE | EM_KEY);
+
+		// 左键：拖动物体旋转
 		if (msg.lbutton)
 		{
 			if (old_x != -1)
 			{
-				scenceMain.GetObjects()[0].RotateY(-(old_x - msg.x));
-				scenceMain.GetObjects()[0].RotateX(-(msg.y - old_y));
-				scenceMain.GetObjects()[0].UpdateRotatedPoints();
+				pScence->GetObjects()[0].RotateY(-(old_x - msg.x));
+				pScence->GetObjects()[0].RotateX(-(msg.y - old_y));
+				pScence->GetObjects()[0].UpdateRotatedPoints();
 			}
 
 			old_x = msg.x;
@@ -311,20 +328,60 @@ int main()
 			old_x = old_y = -1;
 		}
 
+		// R 键：重置
 		if (msg.vkcode == 'R')
 		{
-			scenceMain.GetObjects()[0].SetAttitude({ 0,0,0 });
-			scenceMain.GetObjects()[0].UpdateRotatedPoints();
+			pScence->GetObjects()[0].SetAttitude({ 0,0,0 });
+			pScence->GetObjects()[0].UpdateRotatedPoints();
 			printf("reset\n");
 		}
 
-		flushmessage(EM_MOUSE);
+		// ESC 键：退出程序
+		if (msg.vkcode == VK_ESCAPE)
+		{
+			break;
+		}
 
+		// P 键：切换场景
+		if (msg.vkcode == 'P' && !msg.prevdown)
+		{
+			if (pScence == &scenceMain)
+			{
+				pScence = &scence2;
+			}
+			else
+			{
+				pScence = &scenceMain;
+			}
+		}
+
+		// 滚轮：改变相机 z 轴位置
+		if (msg.wheel != 0)
+		{
+			pScence->MoveCameraZ(msg.wheel / 10);
+		}
+
+		// 清空鼠标消息，绘制图像以及清空绘图缓冲区
+		flushmessage();
 		FlushBatchDraw();
 		cleardevice();
+
+		// temp : out put
+		Point3D pCenter = scenceMain.GetObjects()[0].GetCenterPoint();
+		double pObjMinZ = scenceMain.GetObjects()[0].GetRectangle().min_z;
+		Point3D pCamera = scenceMain.GetCameraPosition();
+		int nFocalLength = scenceMain.GetCameraFocalLength();
+		system("cls");
+		printf("物体中心点 (%.2f, %.2f, %.2f)\n",pCenter.x, pCenter.y, pCenter.z);
+		printf("相机位置点 (%.2f, %.2f, %.2f)\n", pCamera.x, pCamera.y, pCamera.z);
+		printf("焦距：%d\n", nFocalLength);
+		printf("物体和相机的距离（obj.z - cam.z）：%.2f\n", pCenter.z - pCamera.z);
+		printf("物体的 min z 和相机的距离：%.2f\n", pObjMinZ - pCamera.z);
 	}
 
-	getmessage(EM_CHAR);
+	// 结束批量绘图，关闭绘图设备
+	EndBatchDraw();
 	CloseDrawingDevice();
+
 	return 0;
 }

@@ -4,7 +4,9 @@
  *
  * @author	huidong
  * @mail	huidong_mail@163.com
- * @date	2021.8.2
+ * @version	Ver 0.1 (beta)
+ * @date	创建时间 2021.8.2
+ *			最后修改 2021.8.12
  *
  */
 
@@ -12,48 +14,39 @@
 
 #include <math.h>
 #include <time.h>
+#include <algorithm>
 
  // 图形库
 #include <easyx.h>
-
 #include <stdio.h>
 
-// sort
-#include <algorithm>
-using namespace std;
+#define _HD3D_BEGIN	namespace HD3D {
+#define _HD3D_END	}
+
+_HD3D_BEGIN
 
 // 多边形最大边数
 #define POLYGON_MAX_SIDES 16
 
-// 代码耗时计算（仅debug状态下有效）
-#ifdef _DEBUG
+//////// 基础类型定义
 
-double dfq;
-LARGE_INTEGER fq, t_begin, t_end;
-#define TIMEC_INIT    {QueryPerformanceFrequency(&fq);dfq=1.0/fq.QuadPart;}
-#define TIMEC_BEGIN    QueryPerformanceCounter(&t_begin);
-#define TIMEC_END    {QueryPerformanceCounter(&t_end);printf("%lf\n",(t_end.QuadPart-t_begin.QuadPart)*dfq);}
-
-#else
-
-#define TIMEC_INIT
-#define TIMEC_BEGIN
-#define TIMEC_END
-
-#endif // _DEBUG
-
-/** @brief 颜色信息（为负数则表示无颜色） */
+/**
+ * @brief 颜色信息（为负数则表示无颜色）
+*/
 typedef int Color;
 
-
-/** @brief 2D 坐标 */
+/**
+ * @brief 2D 坐标
+*/
 struct Point2D
 {
 	double x;
 	double y;
 };
 
-/** @brief 3D 坐标 */
+/**
+ * @brief 3D 坐标
+*/
 struct Point3D
 {
 	double x;
@@ -61,7 +54,9 @@ struct Point3D
 	double z;
 };
 
-/** @brief 带有颜色的 3D 坐标 */
+/**
+ * @brief 带有颜色的 3D 坐标
+*/
 struct ColorPoint3D
 {
 	double x;
@@ -69,19 +64,32 @@ struct ColorPoint3D
 	double z;
 	Color color;
 
-	/** @brief 转换为不带颜色的 3D 坐标 */
+	/**
+	 * @brief 转换为不带颜色的 3D 坐标
+	*/
 	operator Point3D() const { return { x,y,z }; }
 };
 
-/** @brief 3D 立方体，存储立方体的最大和最小的 x,y,z 值 */
+/**
+ * @brief 3D 立方体，存储立方体的最大和最小的 x,y,z 值
+*/
 struct Rectangle3D
 {
 	double min_x, min_y, min_z, max_x, max_y, max_z;
 };
 
+/**
+ * @brief 缩放因子
+*/
+struct Zoom
+{
+	double x;	/** @brief x 方向缩放因子 */
+	double y;	/** @brief y 方向缩放因子 */
+};
 
-
-/** @brief 3D 多边形（带颜色） */
+/**
+ * @brief 3D 多边形
+*/
 class Polygon3D
 {
 private:
@@ -102,12 +110,12 @@ public:
 	}
 
 	/**
-	 * @brief		根据顶点创建多边形
-	 * @param[in]	p: 顶点数组
-	 * @param[in]	n: 顶点数量
-	 * @param[in]	c: 多边形填充颜色
-	 * @attention	顶点数量不得超过最大顶点数量
-	 * @see			POLYGON_MAX_SIDES
+	 * @brief 根据顶点创建多边形
+	 * @param[in] p : 顶点数组
+	 * @param[in] n : 顶点数量
+	 * @param[in] c : 多边形填充颜色
+	 * @attention 顶点数量不得超过最大顶点数量
+	 * @see POLYGON_MAX_SIDES
 	*/
 	Polygon3D(const Point3D* p, int n, Color c)
 	{
@@ -120,17 +128,8 @@ public:
 
 	~Polygon3D()
 	{
-		//if (pPoints) delete[] pPoints;
-	}
 
-	/*Polygon3D& operator= (const Polygon3D& p)
-	{
-		for (int i = 0; i < p.nPointsNum; i++)
-			pPoints[i] = p.pPoints[i];
-		nPointsNum = p.nPointsNum;
-		color = p.color;
-		return *this;
-	}*/
+	}
 
 	bool operator< (Polygon3D& p)
 	{
@@ -163,20 +162,24 @@ public:
 		return min + (max - min) / 2;
 	}
 
+	/**
+	 * @brief 清空内容，释放内存
+	*/
+	void clear()
+	{
+		if (pPoints) delete[] pPoints;
+		pPoints = NULL;
+	}
+
 	Point3D* pPoints;	/** @brief 多边形顶点 */
-	int nPointsNum;			/** @brief 多边形顶点数量 */
-	Color color;			/** @brief 多边形填充颜色 */
+	int nPointsNum;		/** @brief 多边形顶点数量 */
+	Color color;		/** @brief 多边形填充颜色 */
 };
 
-//bool cmp(Polygon3D& a, Polygon3D& b)
-//{
-//	return a.GetCenterZ() < b.GetCenterZ();
-//}
-
 /**
- * @brief		3D 物体的姿态
- * @attention	姿态的旋转角度都是基于物体自身的，并非相对于旋转原点
- * @note		以下角度都以顺时针作为正的旋转方向
+ * @brief 3D 物体的姿态
+ * @attention 姿态的旋转角度都是基于物体自身的，并非相对于旋转原点
+ * @note 以下角度都以逆时针作为正的旋转方向
  */
 struct Attitude3D
 {
@@ -185,22 +188,30 @@ struct Attitude3D
 	double r;	/** @brief 物体自身的 x 轴旋转角 */
 };
 
-/** @brief 旋转顺序 */
+/**
+ * @brief 旋转顺序
+*/
 enum RotateOrder { rotate_x, rotate_y, rotate_z };
 
-/** @brief 默认旋转顺序 */
-const int m_defaultRotateOrder[3] = { rotate_z,rotate_y,rotate_x };
+/**
+ * @brief 默认旋转顺序
+*/
+int m_defaultRotateOrder[3] = { rotate_z,rotate_y,rotate_x };
 
-/** @brief 将不带颜色的 3D 坐标转换为带颜色的 3D 坐标 */
+//////// 基本函数实现
+
+/**
+ * @brief 将不带颜色的 3D 坐标转换为带颜色的 3D 坐标
+*/
 inline ColorPoint3D ToColorPoint3D(Point3D p)
 {
 	return { p.x,p.y,p.z,(Color)0 };
 }
 
 /**
- * @brief		将角度转换为弧度
- * @param[in]	angle: 原角度
- * @return		角度转换后得到的弧度
+ * @brief 将角度转换为弧度
+ * @param[in] angle : 原角度
+ * @return 角度转换后得到的弧度
 */
 inline double ConvertToRadian(double angle)
 {
@@ -208,11 +219,11 @@ inline double ConvertToRadian(double angle)
 }
 
 /**
- * @brief		旋转 2D 坐标
- * @param[in]	x: x 坐标
- * @param[in]	y: y 坐标
- * @param[in]	angle: 顺时针旋转角度，为负数则表示逆时针旋转
- * @return		旋转后的 2D 坐标
+ * @brief 旋转 2D 坐标
+ * @param[in] x : x 坐标
+ * @param[in] y : y 坐标
+ * @param[in] angle : 逆时针旋转角度，为负数则表示顺时针旋转
+ * @return 旋转后的 2D 坐标
 */
 inline Point2D Rotate2D(double x, double y, double angle)
 {
@@ -222,10 +233,10 @@ inline Point2D Rotate2D(double x, double y, double angle)
 }
 
 /**
- * @brief		顺时针旋转 2D 坐标
- * @param[in]	p: 要旋转的 2D 坐标
- * @param[in]	angle: 旋转角度
- * @return		旋转后的 2D 坐标
+ * @brief 顺时针旋转 2D 坐标
+ * @param[in] p : 要旋转的 2D 坐标
+ * @param[in] angle : 旋转角度
+ * @return 旋转后的 2D 坐标
 */
 inline Point2D Rotate2D(Point2D p, double angle)
 {
@@ -233,11 +244,11 @@ inline Point2D Rotate2D(Point2D p, double angle)
 }
 
 /**
- * @brief		将 3D 坐标沿 X 轴顺时针旋转
- * @param[in]	p: 要旋转的坐标
- * @param[in]	angle: 旋转角度
- * @param[in]	pOrigin: 旋转原点
- * @return		旋转后的坐标
+ * @brief 将 3D 坐标沿 X 轴顺时针旋转
+ * @param[in] p : 要旋转的坐标
+ * @param[in] angle : 旋转角度
+ * @param[in] pOrigin : 旋转原点
+ * @return 旋转后的坐标
 */
 inline Point3D Rotate3D_X(Point3D p, double angle, Point3D pOrigin = { 0,0,0 })
 {
@@ -246,11 +257,11 @@ inline Point3D Rotate3D_X(Point3D p, double angle, Point3D pOrigin = { 0,0,0 })
 }
 
 /**
- * @brief		将 3D 坐标沿 Y 轴顺时针旋转
- * @param[in]	p: 要旋转的坐标
- * @param[in]	angle: 旋转角度
- * @param[in]	pOrigin: 旋转原点
- * @return		旋转后的坐标
+ * @brief 将 3D 坐标沿 Y 轴顺时针旋转
+ * @param[in] p : 要旋转的坐标
+ * @param[in] angle : 旋转角度
+ * @param[in] pOrigin : 旋转原点
+ * @return 旋转后的坐标
 */
 inline Point3D Rotate3D_Y(Point3D p, double angle, Point3D pOrigin = { 0,0,0 })
 {
@@ -259,11 +270,11 @@ inline Point3D Rotate3D_Y(Point3D p, double angle, Point3D pOrigin = { 0,0,0 })
 }
 
 /**
- * @brief		将 3D 坐标沿 Z 轴顺时针旋转
- * @param[in]	p: 要旋转的坐标
- * @param[in]	angle: 旋转角度
- * @param[in]	pOrigin: 旋转原点
- * @return		旋转后的坐标
+ * @brief 将 3D 坐标沿 Z 轴顺时针旋转
+ * @param[in] p : 要旋转的坐标
+ * @param[in] angle : 旋转角度
+ * @param[in] pOrigin : 旋转原点
+ * @return 旋转后的坐标
 */
 inline Point3D Rotate3D_Z(Point3D p, double angle, Point3D pOrigin = { 0,0,0 })
 {
@@ -272,14 +283,14 @@ inline Point3D Rotate3D_Z(Point3D p, double angle, Point3D pOrigin = { 0,0,0 })
 }
 
 /**
- * @brief		旋转 3D 坐标
- * @param[in]	p: 原坐标
- * @param[in]	a: 绕 z 轴的旋转角度
- * @param[in]	e: 绕 y 轴的旋转角度
- * @param[in]	r: 绕 x 轴的旋转角度
- * @param[in]	pOrigin: 旋转原点
- * @param[in]	pOrder: 旋转顺序
- * @return		旋转后的坐标
+ * @brief 旋转 3D 坐标
+ * @param[in] p : 原坐标
+ * @param[in] a : 绕 z 轴的旋转角度
+ * @param[in] e : 绕 y 轴的旋转角度
+ * @param[in] r : 绕 x 轴的旋转角度
+ * @param[in] pOrigin : 旋转原点
+ * @param[in] pOrder : 旋转顺序
+ * @return 旋转后的坐标
 */
 inline Point3D Rotate3D(Point3D p, double a, double e, double r, Point3D pOrigin = { 0,0,0 }, const int pOrder[3] = m_defaultRotateOrder)
 {
@@ -296,10 +307,135 @@ inline Point3D Rotate3D(Point3D p, double a, double e, double r, Point3D pOrigin
 }
 
 /**
- * @brief		初始化绘图设备
- * @param[in]	w: 绘图设备宽
- * @param[in]	w: 绘图设备高
- * @param[in]	flag: 附加属性，默认为 0
+ * @brief 将多边形集合绕着相机旋转
+ * @param[in] pPolygons : 多边形集合
+ * @param[in] num : 多边形数量
+ * @param[in] atiCamera : 相机姿态
+ * @param[in] pCamera : 相机位置
+ * @return 返回旋转后的多边形集合
+*/
+inline Polygon3D* RotateToCamera(Polygon3D* pPolygons, int num, Attitude3D atiCamera, Point3D pCamera)
+{
+	Polygon3D* pRotated = new Polygon3D[num];
+	for (int i = 0; i < num; i++)
+	{
+		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		{
+			pRotated[i].pPoints[j] = Rotate3D(pPolygons[i].pPoints[j], -atiCamera.a, -atiCamera.e, -atiCamera.r, pCamera);
+		}
+		pRotated[i].nPointsNum = pPolygons[i].nPointsNum;
+		pRotated[i].color = pPolygons[i].color;
+	}
+	return pRotated;
+}
+
+/**
+ * @brief 将多边形集合转换坐标系
+ * @param[in] pPolygons : 坐标系集合
+ * @param[in] num : 多边形数量
+ * @param[in] pOrigin : 新的坐标系的原点在旧坐标系中的位置
+ * @return 返回转换坐标系后的多边形集合
+*/
+inline Polygon3D* ConvertCoordinateSystem(Polygon3D* pPolygons, int num, Point3D pOrigin)
+{
+	Polygon3D* pConverted = new Polygon3D[num];
+	for (int i = 0; i < num; i++)
+	{
+		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		{
+			pConverted[i].pPoints[j].x = pPolygons[i].pPoints[j].x - pOrigin.x;
+			pConverted[i].pPoints[j].y = pPolygons[i].pPoints[j].y - pOrigin.y;
+			pConverted[i].pPoints[j].z = pPolygons[i].pPoints[j].z - pOrigin.z;
+		}
+		pConverted[i].nPointsNum = pPolygons[i].nPointsNum;
+		pConverted[i].color = pPolygons[i].color;
+	}
+	return pConverted;
+}
+
+/**
+ * @brief 将多边形集合加入透视投影效果
+ * @param[in] pPolygons : 多边形集合
+ * @param[in] num : 多边形数量
+ * @param[in] nFocal : 焦距
+ * @return 返回透视投影后的多边形集合
+ * @attention 透视中心点是坐标系原点
+ * @note 不会对视口外的点进行裁剪
+*/
+inline Polygon3D* GetPerspectiveProjectionPolygons(Polygon3D* pPolygons, int num, int nFocal)
+{
+	Polygon3D* pProjection = new Polygon3D[num];
+	for (int i = 0; i < num; i++)
+	{
+		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		{
+			pProjection[i].pPoints[j] = {
+				pPolygons[i].pPoints[j].x * (nFocal - pPolygons[i].pPoints[j].z) / nFocal,
+				pPolygons[i].pPoints[j].y * (nFocal - pPolygons[i].pPoints[j].z) / nFocal,
+				pPolygons[i].pPoints[j].z
+			};
+		}
+		pProjection[i].nPointsNum = pPolygons[i].nPointsNum;
+		pProjection[i].color = pPolygons[i].color;
+	}
+	return pProjection;
+}
+
+/**
+ * @brief 裁剪 NDC 多边形集合
+ * @param[in] pPolygons : NDC 多边形集合
+ * @param[in] num : 多边形数量
+ * @param[in] nFocal : 焦距
+ * @param[out] out_count : 返回裁剪后多边形总数
+ * @return 返回裁剪后的多边形集合
+*/
+inline Polygon3D* CropNDCPolygons(Polygon3D* pPolygons, int num, int nFocal, int* out_count)
+{
+
+	/////////// 暂时做的是一个比较简单粗暴的判断
+	/////////// 现在只是做了在视口区域外的裁剪 (x[-1 ~ 1]  y [-1 ~ 1]  z[0 ~ f])
+	/////////// 后续要改成多边形交集判断
+
+	Polygon3D* pCrop = new Polygon3D[num];
+	int count = 0;
+	for (int i = 0; i < num; i++)
+	{
+		int crop_count = 0;
+		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		{
+			// 统计一个多边形超出视口的点的个数
+			if (pPolygons[i].pPoints[j].x < -1 || pPolygons[i].pPoints[j].x > 1 ||
+				pPolygons[i].pPoints[j].y < -1 || pPolygons[i].pPoints[j].y > 1 ||
+				pPolygons[i].pPoints[j].z < 0 || pPolygons[i].pPoints[j].z > nFocal)
+			{
+				crop_count++;
+			}
+
+			// 但凡有一个点在视口内就可以被保留
+			else
+			{
+				break;
+			}
+		}
+
+		// 并非所有点都超出视口的情况下才保留此多边形，否则被裁剪。
+		if (crop_count < pPolygons[i].nPointsNum)
+		{
+			pCrop[count] = pPolygons[i];
+			count ++;
+		}
+	}
+	*out_count = count;
+	return pCrop;
+}
+
+//////// 绘图设备相关
+
+/**
+ * @brief 初始化绘图设备
+ * @param[in] w : 绘图设备宽
+ * @param[in] w : 绘图设备高
+ * @param[in] flag : 附加属性，默认为 0
 */
 inline void InitDrawingDevice(int w, int h, int flag = 0)
 {
@@ -310,7 +446,7 @@ inline void InitDrawingDevice(int w, int h, int flag = 0)
 
 /**
  * @brief	关闭绘图设备
- */
+*/
 inline void CloseDrawingDevice()
 {
 	// easyx
@@ -334,11 +470,11 @@ inline int GetDrawingDeviceHeight()
 }
 
 /**
- * @brief		绘制点
- * @param[in]	x: 绘制位置
- * @param[in]	y: 绘制位置
- * @param[in]	c: 绘制颜色
- */
+ * @brief 绘制点
+ * @param[in] x : 绘制位置
+ * @param[in] y : 绘制位置
+ * @param[in] c : 绘制颜色
+*/
 inline void DrawPixel(int x, int y, Color c)
 {
 	if (c < 0) return;
@@ -350,52 +486,45 @@ inline void DrawPixel(int x, int y, Color c)
 }
 
 /**
- * @brief		绘制点
- * @param[in]	p: 绘制位置
- * @param[in]	c: 绘制颜色
- */
+ * @brief 绘制点
+ * @param[in] p : 绘制位置
+ * @param[in] c : 绘制颜色
+*/
 inline void DrawPixel(Point2D p, Color c)
 {
 	DrawPixel((int)p.x, (int)p.y, c);
 }
 
 /**
- * @brief		将场景坐标投影出的 2D 坐标转为居中的屏幕坐标
- * @param[in]	p: 原坐标
- * @param[in]	device_offset_x: 转换为的屏幕坐标的 x 轴的偏移量
- * @param[in]	device_offset_y: 转换为的屏幕坐标的 y 轴的偏移量
- * @return		返回转换后的屏幕坐标
- *
- * @note
- * 场景坐标投影出的 2D 坐标向右为 x 轴正方向，向上为 y 轴正方向；
- * 绘图设备的坐标（屏幕坐标）以向右为 x 轴正方向，向下为 y 轴正方向；
- * 此函数将场景坐标的 2D 投影坐标转为屏幕坐标，并且移动到屏幕中心。
- * 可以通过设置 device_offset_x 和 device_offset_y 设置图像在
- * 屏幕上输出时的坐标偏移量（偏移是基于屏幕中心的）
- *
+ * @brief 将 3D 的 NDC 坐标 转为 3D 的屏幕坐标
+ * @param[in] p : 原坐标
+ * @param[in] zoom : 坐标缩放因子
+ * @return 返回转换后的屏幕坐标
+ * @note 默认观察面为 xoy
 */
-inline Point2D ConvertScenePointToScreenPoint(Point2D p, int device_offset_x = 0, int device_offset_y = 0)
+inline Point3D ConvertNDC3DToScreenPoint(Point3D p, Zoom zoom = { 1,1 })
 {
-	return { p.x + GetDrawingDeviceWidth() / 2 + device_offset_x ,GetDrawingDeviceHeight() - p.y - GetDrawingDeviceHeight() / 2 + device_offset_y };
+	return { (p.x * zoom.x + 1) * GetDrawingDeviceWidth(),(1 - p.y * zoom.y) * GetDrawingDeviceHeight() };
 }
 
 /**
- * @brief		绘制填充多边形
- * @param[in]	p: 3D 多边形
- * @param[in]	offset_x: 输出的图像的 x 坐标偏移
- * @param[in]	offset_y: 输出的图像的 y 坐标偏移
- * @param[in]	grid: 网格颜色，为负数表示不绘制网格
- * @attention	只取多边形的 x,y 坐标绘制到屏幕
+ * @brief 绘制填充多边形
+ * @param[in] p : 3D 多边形
+ * @param[in] offset_x : 输出的图像的 x 坐标偏移
+ * @param[in] offset_y : 输出的图像的 y 坐标偏移
+ * @param[in] zoom : 图像缩放因子
+ * @param[in] grid : 多边形网格颜色，为负数表示不绘制网格
+ * @attention 只取多边形的 x,y 坐标绘制到屏幕
 */
-inline void DrawFillPolygon(Polygon3D& p, int offset_x = 0, int offset_y = 0, Color grid = -1)
+inline void DrawFillPolygon(Polygon3D p, int offset_x = 0, int offset_y = 0, Zoom zoom = { 1,1 }, Color grid = -1)
 {
 	if (p.nPointsNum <= 0) return;
 
 	POINT* pPoints = new POINT[p.nPointsNum];
 	for (int j = 0; j < p.nPointsNum; j++)
 	{
-		Point2D pp = ConvertScenePointToScreenPoint({ p.pPoints[j].x,p.pPoints[j].y }, offset_x, offset_y);
-		pPoints[j] = { (long)pp.x,(long)pp.y };
+		Point3D pp = ConvertNDC3DToScreenPoint(p.pPoints[j], zoom);
+		pPoints[j] = { (long)(pp.x) + offset_x,(long)(pp.y) + offset_y };
 	}
 
 	//// easyx 绘制
@@ -438,101 +567,11 @@ inline void DrawFillPolygon(Polygon3D& p, int offset_x = 0, int offset_y = 0, Co
 	delete[] pPoints;
 }
 
-/**
- * @brief	多边形深度的快速排序（请调用另一个重载函数）
- * @note	改自菜鸟教程
-*/
-inline void SortPolygons(Polygon3D* s, int l, int r)
-{
-	if (l < r)
-	{
-		int i = l, j = r;
-		Polygon3D* x = &s[l];
-		while (i < j)
-		{
-			while (i < j && s[j].GetCenterZ() >= x->GetCenterZ())
-				j--;
-			if (i < j)
-				s[i++] = s[j];
-
-			while (i < j && s[i].GetCenterZ() < x->GetCenterZ())
-				i++;
-			if (i < j)
-				s[j--] = s[i];
-		}
-		s[i] = *x;
-		SortPolygons(s, l, i - 1);
-		SortPolygons(s, i + 1, r);
-	}
-}
+//////// 类定义
 
 /**
- * @brief			多边形深度的快速排序
- * @param[in/out]	s: 多边形数组
- * @param[in]		size: 数组大小
- * @return			不返回值，排序的结果存放在数组中
+ * @brief 3D 物体
 */
-inline void SortPolygons(Polygon3D* s, int size)
-{
-	SortPolygons(s, 0, size - 1);
-}
-
-
-
-//
-////
-//inline int Paritition(Polygon3D A[], int low, int high) {
-//	Polygon3D& pivot = A[low];
-//	while (low < high) {
-//		while (low < high && GetPolygonCenterZ(A[high]) >= GetPolygonCenterZ(pivot)) {
-//			--high;
-//		}
-//		A[low] = A[high];
-//		while (low < high && GetPolygonCenterZ(A[low]) <= GetPolygonCenterZ(pivot)) {
-//			++low;
-//		}
-//		A[high] = A[low];
-//	}
-//	A[low] = pivot;
-//	return low;
-//}
-//
-//inline void QuickSort(Polygon3D A[], int low, int high)
-//{
-//	if (low < high) {
-//		int pivot = Paritition(A, low, high);
-//		QuickSort(A, low, pivot - 1);
-//		QuickSort(A, pivot + 1, high);
-//	}
-//}
-
-template <typename T>
-void quick_sort_recursive(T arr[], int start, int end) {
-	if (start >= end)
-		return;
-	T mid = arr[end];
-	int left = start, right = end - 1;
-	while (left < right) { //在整个范围内搜寻比枢纽元值小或大的元素，然后将左侧元素与右侧元素交换
-		while (arr[left] < mid && left < right) //试图在左侧找到一个比枢纽元更大的元素
-			left++;
-		while (arr[right] >= mid && left < right) //试图在右侧找到一个比枢纽元更小的元素
-			right--;
-		std::swap(arr[left], arr[right]); //交换元素
-	}
-	if (arr[left] >= arr[end])
-		std::swap(arr[left], arr[end]);
-	else
-		left++;
-	quick_sort_recursive(arr, start, left - 1);
-	quick_sort_recursive(arr, left + 1, end);
-}
-template <typename T> //整數或浮點數皆可使用,若要使用物件(class)時必須設定"小於"(<)、"大於"(>)、"不小於"(>=)的運算子功能
-void quick_sort(T arr[], int len) {
-	quick_sort_recursive(arr, 0, len - 1);
-}
-
-
-/** @brief 3D 物体 */
 class Object3D
 {
 private:
@@ -550,7 +589,7 @@ private:
 	*/
 	void UpdateCenterPoint()
 	{
-		Rectangle3D r = GetRectangle();
+		Rectangle3D r = GetRectangle(false);
 
 		pCenter = {
 			(r.max_x - r.min_x) / 2 + r.min_x,
@@ -560,8 +599,8 @@ private:
 	}
 
 	/**
-	 * @brief		更新旋转点数组长度
-	 * @attention	将擦除原数组中的数据
+	 * @brief 更新旋转点数组长度
+	 * @attention 将擦除原数组中的数据
 	*/
 	void UpdateRotatedPointsArrayLength()
 	{
@@ -572,8 +611,8 @@ private:
 	}
 
 	/**
-	 * @brief		更新元素数组
-	 * @attention	物体的元素数量发生更改时，调用此函数
+	 * @brief 更新元素数组
+	 * @attention 物体的元素数量发生更改时，调用此函数
 	*/
 	void UpdateArray()
 	{
@@ -598,24 +637,41 @@ public:
 
 	~Object3D()
 	{
-		if (pPolygons)			delete[] pPolygons;
-		if (pRotatedPolygons)	delete[] pRotatedPolygons;
+		Polygon3D* p = NULL;
+		for (int i = 0; i < 2; i++)
+		{
+			if (i == 0) p = pPolygons;
+			else p = pRotatedPolygons;
+
+			if (p)
+			{
+				for (int i = 0; i < nPolygonsNum; i++)
+					p[i].clear();
+				delete[] pPolygons;
+			}
+		}
 	}
 
-	/** @brief 设置旋转顺序 */
+	/**
+	 * @brief 设置旋转顺序
+	*/
 	void SetRotateOrder(int pOrder[3])
 	{
 		for (int i = 0; i < 3; i++)
 			rotate_order[i] = pOrder[i];
 	}
 
-	/** @brief 获取旋转顺序 */
+	/**
+	 * @brief 获取旋转顺序
+	*/
 	int* GetRotateOrder()
 	{
 		return rotate_order;
 	}
 
-	/** @brief 获取物体中点的数量 */
+	/**
+	 * @brief 获取物体中点的数量
+	*/
 	int GetPointsNum()
 	{
 		int num = 0;
@@ -626,16 +682,18 @@ public:
 		return num;
 	}
 
-	/** @brief 获取物体中多边形的数量 */
+	/**
+	 * @brief 获取物体中多边形的数量
+	*/
 	int GetPolygonsNum()
 	{
 		return nPolygonsNum;
 	}
 
 	/**
-	 * @brief		获取物体的所有点
-	 * @param[in]	rotated: 是否获取旋转后的点
-	 * @attention	调用 GetPointsNum 函数来获取点的数量
+	 * @brief 获取物体的所有点
+	 * @param[in] rotated : 是否获取旋转后的点
+	 * @attention 调用 GetPointsNum 函数来获取点的数量
 	*/
 	ColorPoint3D* GetPoints(bool rotated = true)
 	{
@@ -655,9 +713,9 @@ public:
 	}
 
 	/**
-	 * @brief		获取物体中的所有多边形
-	 * @param[in]	rotated: 是否获取旋转后的多边形
-	 * @attention	调用 GetPolygonsNum 函数来获取多边形的数量
+	 * @brief 获取物体中的所有多边形
+	 * @param[in] rotated : 是否获取旋转后的多边形
+	 * @attention 调用 GetPolygonsNum 函数来获取多边形的数量
 	*/
 	Polygon3D* GetPolygons(bool rotated = true)
 	{
@@ -671,19 +729,25 @@ public:
 		}
 	}
 
-	/** @brief 获取物体中心点坐标 */
+	/**
+	 * @brief 获取物体中心点坐标
+	*/
 	Point3D GetCenterPoint()
 	{
 		return pCenter;
 	}
 
-	/**  @brief	获取物体位置，效果与 GetCenterPoint 函数相同 */
+	/**
+	 * @brief 获取物体位置，效果与 GetCenterPoint 函数相同
+	*/
 	Point3D GetPosition()
 	{
 		return GetCenterPoint();
 	}
 
-	/** @brief 移动物体到某位置，并立即计算新坐标 */
+	/**
+	 * @brief 移动物体到某位置，并立即计算新坐标
+	*/
 	void MoveTo(Point3D pNew)
 	{
 		double offset_x = pNew.x - pCenter.x;
@@ -706,7 +770,9 @@ public:
 		pCenter = pNew;
 	}
 
-	/** @brief 将物体沿 x 轴方向移动，并立即计算新坐标 */
+	/**
+	 * @brief 将物体沿 x 轴方向移动，并立即计算新坐标
+	*/
 	void MoveX(double n)
 	{
 		for (int i = 0; i < nPolygonsNum; i++)
@@ -721,7 +787,9 @@ public:
 		pCenter.x += n;
 	}
 
-	/** @brief 将物体沿 y 轴方向移动，并立即计算新坐标 */
+	/**
+	 * @brief 将物体沿 y 轴方向移动，并立即计算新坐标
+	*/
 	void MoveY(double n)
 	{
 		for (int i = 0; i < nPolygonsNum; i++)
@@ -736,7 +804,9 @@ public:
 		pCenter.y += n;
 	}
 
-	/** @brief 将物体沿 z 轴方向移动，并立即计算新坐标 */
+	/**
+	 * @brief 将物体沿 z 轴方向移动，并立即计算新坐标
+	*/
 	void MoveZ(double n)
 	{
 		for (int i = 0; i < nPolygonsNum; i++)
@@ -751,76 +821,93 @@ public:
 		pCenter.z += n;
 	}
 
-	/** @brief 设置物体姿态 */
+	/**
+	 * @brief 设置物体姿态
+	*/
 	void SetAttitude(Attitude3D ati)
 	{
 		attitude = ati;
 	}
 
-	/** @brief 获取物体姿态 */
+	/**
+	 * @brief 获取物体姿态
+	*/
 	Attitude3D GetAttitude()
 	{
 		return attitude;
 	}
 
-	/** @brief 绕 x 轴顺时针调整物体姿态 */
+	/**
+	 * @brief 绕 x 轴顺时针调整物体姿态
+	*/
 	void RotateX(double angle)
 	{
 		attitude.r += angle;
 	}
 
-	/** @brief 绕 y 轴顺时针调整物体姿态 */
+	/**
+	 * @brief 绕 y 轴顺时针调整物体姿态
+	*/
 	void RotateY(double angle)
 	{
 		attitude.e += angle;
 	}
 
-	/** @brief 绕 z 轴顺时针调整物体姿态 */
+	/**
+	 * @brief 绕 z 轴顺时针调整物体姿态
+	*/
 	void RotateZ(double angle)
 	{
 		attitude.a += angle;
 	}
 
-	/** @brief 获取物体的三维矩形边框 */
-	Rectangle3D GetRectangle()
+	/**
+	 * @brief 获取物体的三维矩形边框
+	 * @param[in] bRotated : 是否获取已经旋转的物体的边框
+	 * @return 返回物体边框
+	*/
+	Rectangle3D GetRectangle(bool bRotated = true)
 	{
-		Rectangle3D r;
+		Rectangle3D r = {};
+		Polygon3D* p = pPolygons;
+		if(bRotated && pRotatedPolygons)
+			p = pRotatedPolygons;
 		for (int i = 0; i < nPolygonsNum; i++)
 		{
-			for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+			for (int j = 0; j < p[i].nPointsNum; j++)
 			{
 				// init
 				if (i + j == 0)
 				{
-					r.min_x = r.max_x = pPolygons[i].pPoints[j].x;
-					r.min_y = r.max_y = pPolygons[i].pPoints[j].y;
-					r.min_z = r.max_z = pPolygons[i].pPoints[j].z;
+					r.min_x = r.max_x = p[i].pPoints[j].x;
+					r.min_y = r.max_y = p[i].pPoints[j].y;
+					r.min_z = r.max_z = p[i].pPoints[j].z;
 					continue;
 				}
 
-				if (pPolygons[i].pPoints[j].x < r.min_x)
-					r.min_x = pPolygons[i].pPoints[j].x;
-				else if (pPolygons[i].pPoints[j].x > r.max_x)
-					r.max_x = pPolygons[i].pPoints[j].x;
+				if (p[i].pPoints[j].x < r.min_x)
+					r.min_x = p[i].pPoints[j].x;
+				else if (p[i].pPoints[j].x > r.max_x)
+					r.max_x = p[i].pPoints[j].x;
 
-				if (pPolygons[i].pPoints[j].y < r.min_y)
-					r.min_y = pPolygons[i].pPoints[j].y;
-				else if (pPolygons[i].pPoints[j].y > r.max_y)
-					r.max_y = pPolygons[i].pPoints[j].y;
+				if (p[i].pPoints[j].y < r.min_y)
+					r.min_y = p[i].pPoints[j].y;
+				else if (p[i].pPoints[j].y > r.max_y)
+					r.max_y = p[i].pPoints[j].y;
 
-				if (pPolygons[i].pPoints[j].z < r.min_z)
-					r.min_z = pPolygons[i].pPoints[j].z;
-				else if (pPolygons[i].pPoints[j].z > r.max_z)
-					r.max_z = pPolygons[i].pPoints[j].z;
+				if (p[i].pPoints[j].z < r.min_z)
+					r.min_z = p[i].pPoints[j].z;
+				else if (p[i].pPoints[j].z > r.max_z)
+					r.max_z = p[i].pPoints[j].z;
 			}
 		}
 		return r;
 	}
 
 	/**
-	 * @brief		更新旋转点数组，计算调整姿态后的新坐标
-	 * @attention	设置或调整物体姿态后不会立即计算新的物体坐标，需要手动调用
-	 *				此函数进行计算。
+	 * @brief 更新旋转点数组，计算调整姿态后的新坐标
+	 * @attention 设置或调整物体姿态后不会立即计算新的物体坐标，需要手动调用
+	 *			此函数进行计算。
 	*/
 	void UpdateRotatedPoints()
 	{
@@ -836,11 +923,11 @@ public:
 	}
 
 	/**
-	 * @brief		在物体中添加点
-	 * @attention	此函数中以单个点为单位添加，所以每个点都独立作为一个多边形插入数组
-	 * @param[in]	pNew: 要添加的点的数组
-	 * @param[in]	num: 要添加的点的数量
-	 * @return		返回新添加的（多个）点在数组中的第一个索引，若插入数据失败返回 -1
+	 * @brief 在物体中添加点
+	 * @attention 此函数中以单个点为单位添加，所以每个点都独立作为一个多边形插入数组
+	 * @param[in] pNew : 要添加的点的数组
+	 * @param[in] num : 要添加的点的数量
+	 * @return 返回新添加的（多个）点在数组中的第一个索引，若插入数据失败返回 -1
 	*/
 	int AddPoints(ColorPoint3D* pNew, int num)
 	{
@@ -870,13 +957,10 @@ public:
 	}
 
 	/**
-	 * @brief		在物体中添加多边形
-	 * @param[in]	pNew: 要添加的多边形的数组
-	 * @param[in]	num: 要添加的多边形的数量
-	 * @return		返回新添加的（多个）多边形在数组中的第一个索引，
-	 *				若插入数据失败返回 -1
-	 * @attention	由于添加过程中复制了 pNew 中的 pPoints 的地址，
-	 *				所以不要删除 pNew 对应的 pPoints
+	 * @brief 在物体中添加多边形
+	 * @param[in] pNew : 要添加的多边形的数组
+	 * @param[in] num : 要添加的多边形的数量
+	 * @return 返回新添加的（多个）多边形在数组中的第一个索引，若插入数据失败返回 -1
 	*/
 	int AddPolygons(Polygon3D* pNew, int num)
 	{
@@ -905,8 +989,8 @@ public:
 	}
 
 	/**
-	 * @brief		删除物体中的某个多边形
-	 * @param[in]	p: 要删除的点的索引
+	 * @brief 删除物体中的某个多边形
+	 * @param[in] p : 要删除的点的索引
 	*/
 	void DeletePolygon(int index)
 	{
@@ -933,7 +1017,10 @@ public:
 
 };
 
-/** @brief 3D 场景 */
+
+/**
+ * @brief 3D 场景
+*/
 class Scence3D
 {
 
@@ -945,8 +1032,14 @@ private:
 	Attitude3D attitudeCamera;	/** @brief 相机姿态 */
 	int nViewportWidth;			/** @brief 相机视口宽度 */
 	int nViewportHeight;		/** @brief 相机视口高度 */
-	int nFocalLength;			/** @brief 相机焦距 */
 
+	/**
+	 * @brief 相机焦距
+	 * @attention 为了画面的正常显示，焦距最好不小于 600
+	*/
+	int nFocalLength;
+
+	bool bPerspectiveProjection;	/** @brief 是否使用透视投影 */
 
 public:
 
@@ -955,12 +1048,14 @@ public:
 		pObjects = NULL;
 		nObjectsNum = 0;
 
-		pCamera = { 0,0,-100 };
+		pCamera = { 0,0,-200 };
 		attitudeCamera = { 0,0,0 };
 
-		nViewportWidth = 200;
-		nViewportHeight = 200;
-		nFocalLength = 100;
+		nViewportWidth = 640;
+		nViewportHeight = 480;
+		nFocalLength = 1000;
+
+		bPerspectiveProjection = true;
 	}
 
 	~Scence3D()
@@ -968,73 +1063,97 @@ public:
 		if (pObjects) delete[] pObjects;
 	}
 
-	/** @brief 设置相机位置 */
+	/**
+	 * @brief 设置相机位置
+	*/
 	void SetCameraPosition(Point3D p)
 	{
 		pCamera = p;
 	}
 
-	/** @brief 获取相机位置 */
+	/**
+	 * @brief 获取相机位置
+	*/
 	Point3D GetCameraPosition()
 	{
 		return pCamera;
 	}
 
-	/** @brief 移动相机，效果与 SetCameraPosition 相同 */
+	/**
+	 * @brief 移动相机，效果与 SetCameraPosition 相同
+	*/
 	void MoveCameraTo(Point3D p)
 	{
 		SetCameraPosition(p);
 	}
 
-	/** @brief 在 x 轴方向移动相机 */
+	/**
+	 * @brief 在 x 轴方向移动相机
+	*/
 	void MoveCameraX(double n)
 	{
 		pCamera.x += n;
 	}
 
-	/** @brief 在 y 轴方向移动相机 */
+	/**
+	 * @brief 在 y 轴方向移动相机
+	*/
 	void MoveCameraY(double n)
 	{
 		pCamera.y += n;
 	}
 
-	/** @brief 在 z 轴方向移动相机 */
+	/**
+	 * @brief 在 z 轴方向移动相机
+	*/
 	void MoveCameraZ(double n)
 	{
 		pCamera.z += n;
 	}
 
-	/** @brief 设置相机姿态 */
+	/**
+	 * @brief 设置相机姿态
+	*/
 	void SetCameraAttitude(Attitude3D ati)
 	{
 		attitudeCamera = ati;
 	}
 
-	/** @brief 获取相机姿态 */
+	/**
+	 * @brief 获取相机姿态
+	*/
 	Attitude3D GetCameraAttitude()
 	{
 		return attitudeCamera;
 	}
 
-	/** @brief 将相机绕 x 轴旋转 */
+	/**
+	 * @brief 将相机绕 x 轴旋转
+	*/
 	void RotateCameraX(double angle)
 	{
 		attitudeCamera.r += angle;
 	}
 
-	/** @brief 将相机绕 y 轴旋转 */
+	/**
+	 * @brief 将相机绕 y 轴旋转
+	*/
 	void RotateCameraY(double angle)
 	{
 		attitudeCamera.e += angle;
 	}
 
-	/** @brief 将相机绕 z 轴旋转 */
+	/**
+	 * @brief 将相机绕 z 轴旋转
+	*/
 	void RotateCameraZ(double angle)
 	{
 		attitudeCamera.a += angle;
 	}
 
-	/** @brief 设置相机视口大小 */
+	/**
+	 * @brief 设置相机视口大小
+	*/
 	void SetCameraViewportSize(int w, int h)
 	{
 		nViewportWidth = w;
@@ -1042,9 +1161,9 @@ public:
 	}
 
 	/**
-	 * @brief		获取相机视口大小
-	 * @param[out]	w: 视口宽度
-	 * @param[out]	h: 视口高度
+	 * @brief 获取相机视口大小
+	 * @param[out]	w : 视口宽度
+	 * @param[out]	h : 视口高度
 	*/
 	void GetCameraViewportSize(int* w, int* h)
 	{
@@ -1052,22 +1171,43 @@ public:
 		*h = nViewportHeight;
 	}
 
-	/** @brief 设置相机焦距 */
+	/**
+	 * @brief 设置相机焦距
+	*/
 	void SetCameraFocalLength(int f)
 	{
 		nFocalLength = f;
 	}
 
-	/** @brief 获取相机焦距 */
+	/**
+	 * @brief 获取相机焦距
+	*/
 	int GetCameraFocalLength()
 	{
 		return nFocalLength;
 	}
 
 	/**
-	 * @brief		在场景中添加物体
-	 * @param[in]	obj: 要添加的物体
-	 * @return		返回添加的物体在数组中的索引
+	 * @brief 设置透视投影的开闭
+	 * @param b : 是否开启透视投影
+	*/
+	void EnablePerspectiveProjection(bool b = true)
+	{
+		bPerspectiveProjection = b;
+	}
+
+	/**
+	 * @brief 获取透视投影状态
+	*/
+	bool GetPerspectiveProjectionState()
+	{
+		return bPerspectiveProjection;
+	}
+
+	/**
+	 * @brief 在场景中添加物体
+	 * @param[in] obj : 要添加的物体
+	 * @return 返回添加的物体在数组中的索引
 	*/
 	int AddObject(Object3D& obj)
 	{
@@ -1090,8 +1230,8 @@ public:
 	}
 
 	/**
-	 * @brief		删除场景中的物体
-	 * @param[in]	pObj: 要删除的物体的索引
+	 * @brief 删除场景中的物体
+	 * @param[in] pObj : 要删除的物体的索引
 	*/
 	void DeleteObject(int index)
 	{
@@ -1113,20 +1253,26 @@ public:
 		nObjectsNum--;
 	}
 
-	/** @brief 获取场景中物体的集合 */
+	/**
+	 * @brief 获取场景中物体的集合
+	*/
 	Object3D* GetObjects()
 	{
 		return pObjects;
 	}
 
-	/** @brief 获取场景中物体的数量 */
+	/**
+	 * @brief 获取场景中物体的数量
+	*/
 	int GetObjectsNum()
 	{
 		return nObjectsNum;
 	}
 
-	/** @brief 获取场景中所有的物体的多边形的数量总和 */
-	int GetPolygonsNum()
+	/**
+	 * @brief 获取场景中所有的物体的多边形的数量总和
+	*/
+	int GetAllPolygonsNum()
 	{
 		int index = 0;
 		for (int i = 0; i < nObjectsNum; i++)
@@ -1134,10 +1280,12 @@ public:
 		return index;
 	}
 
-	/** @brief 获取场景中所有物体的多边形的集合 */
-	Polygon3D* GetPolygons()
+	/**
+	 * @brief 获取场景中所有物体的多边形的集合
+	*/
+	Polygon3D* GetAllPolygons()
 	{
-		Polygon3D* p = new Polygon3D[GetPolygonsNum()];
+		Polygon3D* p = new Polygon3D[GetAllPolygonsNum()];
 		for (int i = 0, index = 0; i < nObjectsNum; i++)
 		{
 			Polygon3D* pp = pObjects[i].GetPolygons();
@@ -1151,242 +1299,115 @@ public:
 	}
 
 	/**
-	 * @brief		绘制场景到屏幕
-	 * @param[in]	offset_x: 输出到屏幕的图像的 x 坐标偏移
-	 * @param[in]	offset_y: 输出到屏幕的图像的 y 坐标偏移
-	 * @return		返回绘制耗时（单位：秒）
+	 * @brief 获取视口坐标系下的多边形集合（平行投影）
+	 * @param[out] count : 返回多边形总数
 	*/
-	double Draw(int offset_x = 0, int offset_y = 0, Color grid = -1)
+	Polygon3D* GetViewportPolygons(int* count = NULL)
 	{
+		int nAllPolygonsNum = GetAllPolygonsNum();
+		if (nAllPolygonsNum <= 0) return NULL;
 
-		/*
-		 *	相机视口
-		 *
-		 * 
-		 *		正视图
-		 *
-		 *            ↑ y ( viewport coordinate system )
-		 *            |
-		 *			_ | ____________________
-		 *			↑ +----------------------+
-		 *			| |   |              |   |
-		 *			| |   |              |   |
-		 *	viewport| |   |______________|   |
-		 *	height  | |  /       ↑        \  |
-		 *			| | /        | focal   \ |
-		 *			| |/         ↓ length   \|
-		 *			↓[O]---------------------+ ———————> x ( viewport coordinate system )
-		 *		    / |←—— viewport_width ——→|
-		 *			|
-		 *			|
-		 *			|_--→ viewport origin
-		 *
-		 *
-		 *
-		 *		侧视图
-		 *
-		 *							    ↑ y ( viewport coordinate system )
-		 *            __________________|__
-		 *           /                  | /|
-		 *			|←-- focal length -→|/ |   __  x ( viewport coordinate system )
-		 *			+-------------------/  |    /\
-		 *			|   |               |  |   /
-		 *			|   |               |  | Oo
-		 *			|   |               | }-[==] ----→ camera
-		 *			|   |               |  |/
-		 *			|___|_______________|  /
-		 *	  <—————+------------------[O]-+
-		 *   z ( viewport				|
-		 *		 coordinate system )	|_----→ viewport origin
-		 *
-		 */
+		Polygon3D* pAllPolygons = GetAllPolygons();
+		Polygon3D* pRotated = NULL;
+		Polygon3D* pConverted = NULL;
 
-		 //TIMEC_INIT;
+		// 相机视口的原点
+		Point3D pOriginViewport = { pCamera.x - nViewportWidth / 2,pCamera.y - nViewportHeight / 2,pCamera.z };
 
+		// 旋转到相机视角（但不平移）
+		pRotated = RotateToCamera(pAllPolygons, nAllPolygonsNum, attitudeCamera, pCamera);
+
+		// 平移到视口坐标系
+		pConverted = ConvertCoordinateSystem(pRotated, nAllPolygonsNum, pOriginViewport);
+
+		if (pAllPolygons)	delete[] pAllPolygons;
+		if (pRotated)		delete[] pRotated;
+		return pConverted;
+	}
+
+	/**
+	 * @brief 获取 GetViewportPolygons 函数返回的多边形集合的标准化设备坐标（NDC）形式的多边形集合
+	*/
+	Polygon3D* GetViewportNDCPolygons()
+	{
+		int nPolygonsNum = GetAllPolygonsNum();
+		if (nPolygonsNum <= 0) return NULL;
+		Polygon3D* pPolygons = GetViewportPolygons();
+		Polygon3D* pConverted = ConvertCoordinateSystem(pPolygons, nPolygonsNum, { nViewportWidth / 2.0,nViewportHeight / 2.0,0 });
+
+		for (int i = 0; i < nPolygonsNum; i++)
+		{
+			for (int j = 0; j < pConverted[i].nPointsNum; j++)
+			{
+				pConverted[i].pPoints[j].x /= nViewportWidth / 2.0;
+				pConverted[i].pPoints[j].y /= nViewportHeight / 2.0;
+			}
+		}
+
+		delete[] pPolygons;
+		return pConverted;
+	}
+
+	/**
+	 * @brief 获取要渲染的多边形集合
+	 * @param[out] count : 返回要渲染的多边形数量
+	 * @return 返回在渲染范围内的多边形集合，且已按 z 坐标升序排列
+	 * @note 使用此函数可以获取真正要绘制到设备的多边形集合
+	*/
+	Polygon3D* GetRenderPolygons(int* count)
+	{
+		int nPolygonsNum = GetAllPolygonsNum();
+		int nCropNum = 0;
+		if (nPolygonsNum <= 0) return NULL;
+		Polygon3D* pPolygons = GetViewportNDCPolygons();
+		Polygon3D* pCrop = CropNDCPolygons(pPolygons,nPolygonsNum,nFocalLength,&nCropNum);
+		Polygon3D* pShow = NULL;
+		
+		// 开启透视投影的话就进行计算
+		if (bPerspectiveProjection)
+		{
+			pShow = GetPerspectiveProjectionPolygons(pCrop, nCropNum, nFocalLength);
+		}
+		else
+		{
+			pShow = pCrop;
+		}
+
+		// 多边形 z 轴层次排序
+		std::sort(pShow, pShow + nCropNum);
+
+		*count = nCropNum;
+		delete[] pPolygons;
+		if(bPerspectiveProjection)
+			delete[] pCrop;
+
+		return pShow;
+	}
+
+	/**
+	 * @brief 绘制场景到屏幕
+	 * @param[in] x : 图像输出到屏幕的 x 坐标
+	 * @param[in] y : 图像输出到屏幕的 y 坐标
+	 * @param[in] zoom : 图像缩放因子
+	 * @param[in] grid : 多边形网格颜色，为负数表示不绘制网格
+	 * @return 返回绘制耗时（单位：秒）
+	*/
+	double Render(int x = 0, int y = 0, Zoom zoom = { 1,1 }, Color grid = -1)
+	{
 		int t = clock();
 
-		printf("预初始化 ");
-		TIMEC_BEGIN;
+		int nPolygonsNum = 0;
+		Polygon3D* pPolygons = GetRenderPolygons(&nPolygonsNum);
+		if (nPolygonsNum <= 0) return 0.00001;
 
-		int nAllPolygonsNum = GetPolygonsNum();
-		Polygon3D* pAllPolygons = GetPolygons();					// 所有多边形
-		
-		/*
-		
-		Polygon3D* pFilterWide = new Polygon3D[nAllPolygonsNum];	// 泛筛选结果以及旋转后结果
-		Polygon3D* pFilterNarrow = new Polygon3D[nAllPolygonsNum];	// 狭筛选结果
-		Polygon3D* pFilterDepth = new Polygon3D[nAllPolygonsNum];	// 深度筛选结果
-		int nFilterWideNum = 0, nFilterNarrowNum = 0, nFilterDepthNum = 0;
-
-		int** pDepthMap = new int* [nViewportWidth];	// 在相机渲染范围内的每个点的深度信息
-		for (int i = 0; i < nViewportWidth; i++)
+		for (int i = nPolygonsNum - 1; i >= 0; i--)
 		{
-			// 初始化深度信息数组的值为：相机的深度加两倍焦距，是一个不可能出现在渲染范围内的值
-			pDepthMap[i] = new int[nViewportHeight];
-			for (int j = 0; j < nViewportHeight; j++)
-			{
-				pDepthMap[i][j] = (int)pCamera.z + 2 * nFocalLength;
-			}
+			DrawFillPolygon(pPolygons[i], x, y, zoom, grid);
 		}
-
-		// 选取相机视口的较长边 (l)，求较长边的一半和焦距组成的平面的对角线长度，即为 h
-		int l = nViewportWidth > nViewportHeight ? nViewportWidth / 2 : nViewportHeight / 2;
-		int h = (int)sqrt(nFocalLength * nFocalLength + l * l);
-
-		int lx = nViewportWidth / 2, ly = nViewportHeight / 2;					// limit_x and limit_y
-		Point3D pOriginViewport = { pCamera.x - lx,pCamera.y - ly,pCamera.z };	// 相机视口的原点
-
-		TIMEC_END;
-		printf("泛筛选 ");
-		TIMEC_BEGIN;
-
-		//// 开始筛选
-
-		// 泛筛选
-		for (int i = 0; i < nAllPolygonsNum; i++)
-		{
-			for (int j = 0; j < pAllPolygons[i].nPointsNum; j++)
-			{
-				// 若该多边形的其中任意一个顶点在以相机为中心的、边长为 h 的立方体内，才有可能被渲染
-				if (pAllPolygons[i].pPoints[j].x >= pCamera.x - h && pAllPolygons[i].pPoints[j].x <= pCamera.x + h &&
-					pAllPolygons[i].pPoints[j].y >= pCamera.y - h && pAllPolygons[i].pPoints[j].y <= pCamera.y + h &&
-					pAllPolygons[i].pPoints[j].z >= pCamera.z - h && pAllPolygons[i].pPoints[j].z <= pCamera.z + h)
-				{
-					pFilterWide[nFilterWideNum] = pAllPolygons[i];
-					nFilterWideNum++;
-					break;
-				}
-			}
-		}
-
-		TIMEC_END;
-		printf("旋转 ");
-		TIMEC_BEGIN;
-
-		// 对泛筛选出的多边形绕相机旋转，获取相机姿态下，这些多边形的坐标
-		for (int i = 0; i < nFilterWideNum; i++)
-		{
-			for (int j = 0; j < pFilterWide[i].nPointsNum; j++)
-			{
-				pFilterWide[i].pPoints[j] = Rotate3D(pFilterWide[i].pPoints[j], -attitudeCamera.a, -attitudeCamera.e, -attitudeCamera.r, pCamera);
-			}
-		}
-
-		TIMEC_END;
-		printf("转换坐标系 ");
-		TIMEC_BEGIN;
-
-		// 旋转后将坐标转到 相机视口 的坐标系
-		for (int i = 0; i < nFilterWideNum; i++)
-		{
-			for (int j = 0; j < pFilterWide[i].nPointsNum; j++)
-			{
-				pFilterWide[i].pPoints[j].x -= pOriginViewport.x;
-				pFilterWide[i].pPoints[j].y -= pOriginViewport.y;
-				pFilterWide[i].pPoints[j].z -= pOriginViewport.z;
-			}
-		}
-
-		TIMEC_END;
-		printf("狭筛选 ");
-		TIMEC_BEGIN;
-
-		// 狭筛选
-		for (int i = 0; i < nFilterWideNum; i++)
-		{
-			for (int j = 0; j < pFilterWide[i].nPointsNum; j++)
-			{
-				// 若该多边形的任意一个顶点在相机所面对的视口立方体中（该立方体的宽高为视口宽高，深度为焦距），则判定此多边形在相机的渲染范围内
-				if (pFilterWide[i].pPoints[j].x >= 0 && pFilterWide[i].pPoints[j].x <= nViewportWidth &&
-					pFilterWide[i].pPoints[j].y >= 0 && pFilterWide[i].pPoints[j].y <= nViewportHeight &&
-					pFilterWide[i].pPoints[j].z >= 0 && pFilterWide[i].pPoints[j].z <= nFocalLength)
-				{
-					pFilterNarrow[nFilterNarrowNum] = pFilterWide[i];
-					nFilterNarrowNum++;
-					break;
-				}
-			}
-		}
-
-		TIMEC_END;
-		printf("记录深度信息 ");
-		TIMEC_BEGIN;
-
-		// 深度信息记录
-		for (int i = 0; i < nFilterNarrowNum; i++)
-		{
-			for (int j = 0; j < pFilterNarrow[i].nPointsNum; j++)
-			{
-				// 遍历狭筛选后的所有点，得出在视口平面上的每个点的最浅深度
-				if (pFilterNarrow[i].pPoints[j].z < pDepthMap[(int)pFilterNarrow[i].pPoints[j].x][(int)pFilterNarrow[i].pPoints[j].y])
-				{
-					pDepthMap[(int)pFilterNarrow[i].pPoints[j].x][(int)pFilterNarrow[i].pPoints[j].y] = (int)pFilterNarrow[i].pPoints[j].z;
-				}
-			}
-		}
-
-		TIMEC_END;
-		printf("深度筛选 ");
-		TIMEC_BEGIN;
-
-		// 深度筛选：筛除三个顶点的 z 坐标都不在顶层的多边形，因为他们的渲染是无效的
-		for (int i = 0; i < nFilterNarrowNum; i++)
-		{
-			for (int j = 0; j < pFilterNarrow[i].nPointsNum; j++)
-			{
-				// 该多边形的任一顶点在 z 轴的顶层
-				if (pFilterNarrow[i].pPoints[j].z <= pDepthMap[(int)pFilterNarrow[i].pPoints[j].x][(int)pFilterNarrow[i].pPoints[j].y])
-				{
-					pFilterDepth[nFilterDepthNum] = pFilterNarrow[i];
-					nFilterDepthNum++;
-					break;
-				}
-			}
-		}
-
-		TIMEC_END;
-		printf("排序 ");
-		TIMEC_BEGIN;
-
-		// 完成所有筛选，将筛选结果按 z 轴层次排序以决定绘制顺序
-		//SortPolygons(pFilterDepth, nFilterDepthNum);
-
-		TIMEC_END;
-		printf("绘制 ");
-		TIMEC_BEGIN;
-
-		*/
-
-		//SortPolygons(pAllPolygons, nAllPolygonsNum);
-		quick_sort(pAllPolygons, nAllPolygonsNum);
-		//sort(pAllPolygons, pAllPolygons + nAllPolygonsNum, cmp);
-
-		//mysort(pAllPolygons, nAllPolygonsNum);
-
-		// 绘制
-		for (int i = /*nFilterDepthNum*/nAllPolygonsNum - 1; i >= 0; i--)
-		{
-			DrawFillPolygon(pAllPolygons[i], offset_x, offset_y, grid);
-			//DrawFillPolygon(pFilterDepth[i], offset_x, offset_y, grid);
-			//DrawFillPolygon(pAllPolygons[i], offset_x, offset_y, grid);
-		}
-
-		TIMEC_END;
-
-		delete[] pAllPolygons;
-		/*delete[] pFilterWide;
-		delete[] pFilterNarrow;
-		delete[] pFilterDepth;
-		for (int i = 0; i < nViewportWidth; i++)
-			delete[] pDepthMap[i];
-		delete[] pDepthMap;
-		pAllPolygons = NULL;
-		pFilterWide = NULL;
-		pFilterNarrow = NULL;
-		pFilterDepth = NULL;
-		pDepthMap = NULL;*/
 
 		return (double)(clock() - t) / CLOCKS_PER_SEC;
 	}
 
 };
+
+_HD3D_END
