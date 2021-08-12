@@ -647,7 +647,7 @@ public:
 			{
 				for (int i = 0; i < nPolygonsNum; i++)
 					p[i].clear();
-				delete[] pPolygons;
+				delete[] p;
 			}
 		}
 	}
@@ -1212,17 +1212,17 @@ public:
 	int AddObject(Object3D& obj)
 	{
 		Object3D* newObjects = new Object3D[nObjectsNum + 1];
-		Object3D* p = pObjects;
-		for (int i = 0; i < nObjectsNum + 1; i++)
+		for (int i = 0; i < nObjectsNum; i++)
 		{
-			if (i == nObjectsNum)
-			{
-				p = &obj;
-			}
-			newObjects[i].AddPolygons(p[i].GetPolygons(), p[i].GetPolygonsNum());
-			newObjects[i].SetAttitude(p[i].GetAttitude());
-			newObjects[i].SetRotateOrder(p[i].GetRotateOrder());
+			newObjects[i].AddPolygons(pObjects[i].GetPolygons(), pObjects[i].GetPolygonsNum());
+			newObjects[i].SetAttitude(pObjects[i].GetAttitude());
+			newObjects[i].SetRotateOrder(pObjects[i].GetRotateOrder());
 		}
+
+		newObjects[nObjectsNum].AddPolygons(obj.GetPolygons(), obj.GetPolygonsNum());
+		newObjects[nObjectsNum].SetAttitude(obj.GetAttitude());
+		newObjects[nObjectsNum].SetRotateOrder(obj.GetRotateOrder());
+
 		if (pObjects) delete[] pObjects;
 		pObjects = newObjects;
 		nObjectsNum++;
