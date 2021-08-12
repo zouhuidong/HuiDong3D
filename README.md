@@ -17,6 +17,9 @@ easyx 2021-7-30 + VS2019
 
 **效果**
 
+![人脸模型](https://github.com/zouhuidong/HuiDong3D/blob/master/screenshots/2.png)
+![人脸模型](https://github.com/zouhuidong/HuiDong3D/blob/master/screenshots/3.png)
+![立方体](https://github.com/zouhuidong/HuiDong3D/blob/master/screenshots/1.png)
 
 
 ---
@@ -47,6 +50,8 @@ easyx 2021-7-30 + VS2019
 **目标**
 
 以后还要再继续完善视口裁剪功能，实现 UV 贴图。如果以后有时间的话，可以尝试使用 amp 进行计算。
+
+对了，帧率也要优化一下，现在的帧率有点寒酸……
 
 但是……马上要开学了，不知道以后还有没有时间了，希望我可以继续把这个渲染库完善下去。
 
