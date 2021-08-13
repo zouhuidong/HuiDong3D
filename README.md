@@ -1,7 +1,7 @@
 # HuiDong3D 渲染库
 
 
-**环境**
+### 环境
 
 EasyX 2021-7-30 + VS2019
 
@@ -9,15 +9,17 @@ EasyX 图形库官网： easyx.cn
 
 ---
 
-**简介**
+### 简介
 
-由于本人暂时只有初中数学知识……自学 3D 图形学理论然后开发了这个渲染库。
+由于本人暂时只有初中数学知识……也是自学的 3D 知识，所以暂时做的还不够好。
 
-这个渲染库还欠缺很多功能，一起努力学习吧！
+现在这个渲染库还欠缺很多功能，一起努力学习吧！
+
+加油！
 
 ---
 
-**效果**
+### 效果
 
 ![人脸模型](https://github.com/zouhuidong/HuiDong3D/blob/master/screenshots/2.png)
 ![人脸模型](https://github.com/zouhuidong/HuiDong3D/blob/master/screenshots/3.png)
@@ -25,7 +27,7 @@ EasyX 图形库官网： easyx.cn
 
 ---
 
-**功能列表**
+### 功能列表
 
 - [x] 3D 信息存储
 - [x] 3D 旋转运算
@@ -42,13 +44,13 @@ EasyX 图形库官网： easyx.cn
 
 ---
 
-**已知bug**
+### 已知bug
 
 透视渲染时如果物体距离摄像机比较远，会出现扭曲。
 
 ---
 
-**目标**
+### 目标
 
 以后还要再继续完善视口裁剪功能，实现 UV 贴图。如果以后有时间的话，可以尝试使用 amp 进行计算。
 
@@ -58,20 +60,33 @@ EasyX 图形库官网： easyx.cn
 
 ---
 
-**示例代码**
+### 示例代码
 
 使用命名空间 HD3D
 
 ```cpp
+
 #include "HuiDong3D.h"
 #include <conio.h>
 
+// 获取一段立体柱子的多边形数组
 HD3D::Polygon3D* GetPillar();
 
 int main()
 {
+	// 
+	// HuiDong3D Ver 0.1.1(beta) 示例代码
+	// 
+	// 其中含有少量 easyx 图形库的调用操作
+	// easyx 图形库的详细用法见 easyx.cn
+	//
+
 	// 创建绘图设备
 	HD3D::InitDrawingDevice(640, 480);
+
+	// 设置绘图设备背景颜色（easyx 图形库）
+	setbkcolor(LIGHTBLUE);
+	cleardevice();
 
 	// 创建 3D 场景
 	HD3D::Scence3D scenceMain;
@@ -79,7 +94,8 @@ int main()
 	// 创建一个 3D 物体
 	HD3D::Object3D obj;
 
-	// 在物体中加入一些多边形
+	// 在物体中加入一个 3D 柱子
+	// GetPillar() 函数用来获取柱子的 3D 多边形网格
 	obj.AddPolygons(GetPillar(), 6);
 
 	// 将物体加入场景
@@ -92,12 +108,15 @@ int main()
 	// 旋转后要计算新的物体坐标
 	scenceMain.GetObjects()[0].UpdateRotatedPoints();
 
+	// 移动相机
+	scenceMain.SetCameraPosition({ 0,0,-200 });
+
 	// 渲染场景，并获取渲染耗时
 	// 前两个参数指定输出图像的位置，第三个参数指定图像的缩放倍率，
 	// 第四个参数指定多边形网格的轮廓线颜色（为 -1 时表示不输出轮廓线）
 	double fps = 1.0 / scenceMain.Render(-300, -100, { 0.6,0.6 }, WHITE);
 
-	// 输出渲染耗时（easyx 图形库的详细用法见 easyx.cn）
+	// 输出渲染耗时（easyx 图形库）
 	wchar_t str[32] = { 0 };
 	wsprintf(str, L"fps: %d", (int)fps);
 	outtextxy(0, 0, str);
@@ -163,7 +182,6 @@ HD3D::Polygon3D* GetPillar()
 
 	return pPolygons;
 }
-
 
 ```
 
