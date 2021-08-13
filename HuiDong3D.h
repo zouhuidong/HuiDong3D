@@ -126,17 +126,17 @@ public:
 		color = c;
 	}
 
-	~Polygon3D()
+	/*~Polygon3D()
 	{
+		clear();
+	}*/
 
-	}
-
-	bool operator< (Polygon3D& p)
+	bool operator< (Polygon3D p)
 	{
 		return GetCenterZ() < p.GetCenterZ();
 	}
 
-	bool operator>= (Polygon3D& p)
+	bool operator>= (Polygon3D p)
 	{
 		return GetCenterZ() >= p.GetCenterZ();
 	}
@@ -175,6 +175,47 @@ public:
 	int nPointsNum;		/** @brief 多边形顶点数量 */
 	Color color;		/** @brief 多边形填充颜色 */
 };
+
+/**
+ * @brief 删除多边形数组
+ * @param p : 多边形数组
+ * @param num : 数组长度
+ * @note 自带对空数组的判断
+*/
+inline void DeletePolygons(Polygon3D*& p, int num)
+{
+	if (!p)
+		return;
+	for(int i=0;i<num;i++)
+		p[i].clear();
+	delete[] p;
+	p = NULL;
+}
+
+/**
+ * @brief 复制多边形数组
+ * @param pDst : 目标数组
+ * @param pSrc : 源数组
+ * @param num : 源数组长度
+ * @return 返回目标数组的指针，如果任一数组为空则返回 NULL
+*/
+inline Polygon3D* CopyPolygons(Polygon3D* pDst, Polygon3D* pSrc, int num)
+{
+	if (!pDst || !pSrc)
+	{
+		return NULL;
+	}
+	for (int i = 0; i < num; i++)
+	{
+		for (int j = 0; j < pSrc[i].nPointsNum; j++)
+		{
+			pDst[i].pPoints[j] = pSrc[i].pPoints[j];
+		}
+		pDst[i].nPointsNum = pSrc[i].nPointsNum;
+		pDst[i].color = pSrc[i].color;
+	}
+	return pDst;
+}
 
 /**
  * @brief 3D 物体的姿态
@@ -317,14 +358,14 @@ inline Point3D Rotate3D(Point3D p, double a, double e, double r, Point3D pOrigin
 inline Polygon3D* RotateToCamera(Polygon3D* pPolygons, int num, Attitude3D atiCamera, Point3D pCamera)
 {
 	Polygon3D* pRotated = new Polygon3D[num];
+	CopyPolygons(pRotated,pPolygons,num);
+
 	for (int i = 0; i < num; i++)
 	{
-		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		for (int j = 0; j < pRotated[i].nPointsNum; j++)
 		{
-			pRotated[i].pPoints[j] = Rotate3D(pPolygons[i].pPoints[j], -atiCamera.a, -atiCamera.e, -atiCamera.r, pCamera);
+			pRotated[i].pPoints[j] = Rotate3D(pRotated[i].pPoints[j], -atiCamera.a, -atiCamera.e, -atiCamera.r, pCamera);
 		}
-		pRotated[i].nPointsNum = pPolygons[i].nPointsNum;
-		pRotated[i].color = pPolygons[i].color;
 	}
 	return pRotated;
 }
@@ -339,16 +380,16 @@ inline Polygon3D* RotateToCamera(Polygon3D* pPolygons, int num, Attitude3D atiCa
 inline Polygon3D* ConvertCoordinateSystem(Polygon3D* pPolygons, int num, Point3D pOrigin)
 {
 	Polygon3D* pConverted = new Polygon3D[num];
+	CopyPolygons(pConverted, pPolygons, num);
+
 	for (int i = 0; i < num; i++)
 	{
-		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		for (int j = 0; j < pConverted[i].nPointsNum; j++)
 		{
-			pConverted[i].pPoints[j].x = pPolygons[i].pPoints[j].x - pOrigin.x;
-			pConverted[i].pPoints[j].y = pPolygons[i].pPoints[j].y - pOrigin.y;
-			pConverted[i].pPoints[j].z = pPolygons[i].pPoints[j].z - pOrigin.z;
+			pConverted[i].pPoints[j].x -= pOrigin.x;
+			pConverted[i].pPoints[j].y -= pOrigin.y;
+			pConverted[i].pPoints[j].z -= pOrigin.z;
 		}
-		pConverted[i].nPointsNum = pPolygons[i].nPointsNum;
-		pConverted[i].color = pPolygons[i].color;
 	}
 	return pConverted;
 }
@@ -365,18 +406,16 @@ inline Polygon3D* ConvertCoordinateSystem(Polygon3D* pPolygons, int num, Point3D
 inline Polygon3D* GetPerspectiveProjectionPolygons(Polygon3D* pPolygons, int num, int nFocal)
 {
 	Polygon3D* pProjection = new Polygon3D[num];
+	CopyPolygons(pProjection, pPolygons, num);
+
 	for (int i = 0; i < num; i++)
 	{
-		for (int j = 0; j < pPolygons[i].nPointsNum; j++)
+		for (int j = 0; j < pProjection[i].nPointsNum; j++)
 		{
-			pProjection[i].pPoints[j] = {
-				pPolygons[i].pPoints[j].x * (nFocal - pPolygons[i].pPoints[j].z) / nFocal,
-				pPolygons[i].pPoints[j].y * (nFocal - pPolygons[i].pPoints[j].z) / nFocal,
-				pPolygons[i].pPoints[j].z
-			};
+			double zoom = (nFocal - pPolygons[i].pPoints[j].z) / nFocal;
+			pProjection[i].pPoints[j].x *= zoom;
+			pProjection[i].pPoints[j].y *= zoom;
 		}
-		pProjection[i].nPointsNum = pPolygons[i].nPointsNum;
-		pProjection[i].color = pPolygons[i].color;
 	}
 	return pProjection;
 }
@@ -397,6 +436,7 @@ inline Polygon3D* CropNDCPolygons(Polygon3D* pPolygons, int num, int nFocal, int
 	/////////// 后续要改成多边形交集判断
 
 	Polygon3D* pCrop = new Polygon3D[num];
+
 	int count = 0;
 	for (int i = 0; i < num; i++)
 	{
@@ -421,12 +461,20 @@ inline Polygon3D* CropNDCPolygons(Polygon3D* pPolygons, int num, int nFocal, int
 		// 并非所有点都超出视口的情况下才保留此多边形，否则被裁剪。
 		if (crop_count < pPolygons[i].nPointsNum)
 		{
-			pCrop[count] = pPolygons[i];
+			CopyPolygons(&pCrop[count], &pPolygons[i], 1);	
 			count ++;
 		}
 	}
+
+	// 保留下来的内容
+	Polygon3D* pReserve = new Polygon3D[count];
+	CopyPolygons(pReserve, pCrop, count);
+
+	// 释放创建多的数组
+	DeletePolygons(pCrop, num);
+
 	*out_count = count;
-	return pCrop;
+	return pReserve;
 }
 
 //////// 绘图设备相关
@@ -605,8 +653,7 @@ private:
 	void UpdateRotatedPointsArrayLength()
 	{
 		Polygon3D* newArray = new Polygon3D[nPolygonsNum];
-		if (pRotatedPolygons)
-			delete[] pRotatedPolygons;
+		DeletePolygons(pRotatedPolygons, nPolygonsNum);
 		pRotatedPolygons = newArray;
 	}
 
@@ -642,13 +689,7 @@ public:
 		{
 			if (i == 0) p = pPolygons;
 			else p = pRotatedPolygons;
-
-			if (p)
-			{
-				for (int i = 0; i < nPolygonsNum; i++)
-					p[i].clear();
-				delete[] p;
-			}
+			DeletePolygons(p, nPolygonsNum);
 		}
 	}
 
@@ -934,20 +975,17 @@ public:
 		if (num <= 0 || !pNew)	return -1;
 
 		Polygon3D* newArray = new Polygon3D[nPolygonsNum + num];
-		Polygon3D* p = pPolygons;
-		for (int i = 0, j = 0; i < nPolygonsNum; i++, j++)
-		{
-			memcpy(newArray[i].pPoints, p[j].pPoints, sizeof Point3D * POLYGON_MAX_SIDES);
-			newArray[i].nPointsNum = p[j].nPointsNum;
-			newArray[i].color = p[j].color;
-		}
+		CopyPolygons(newArray, pPolygons, nPolygonsNum);
+
 		for (int i = nPolygonsNum, j = 0; j < num; i++, j++)
 		{
 			newArray[i].pPoints[0] = pNew[j];
 			newArray[i].nPointsNum = 1;
 			newArray[i].color = pNew[j].color;
 		}
-		if (pPolygons) delete[] pPolygons;
+
+		DeletePolygons(pPolygons, nPolygonsNum);
+
 		pPolygons = newArray;
 		nPolygonsNum += num;
 
@@ -967,19 +1005,11 @@ public:
 		if (num <= 0 || !pNew)	return -1;
 
 		Polygon3D* newArray = new Polygon3D[nPolygonsNum + num];
-		Polygon3D* p = pPolygons;
-		for (int i = 0, j = 0; i < nPolygonsNum + num; i++, j++)
-		{
-			if (i == nPolygonsNum)
-			{
-				p = pNew;
-				j = 0;
-			}
-			memcpy(newArray[i].pPoints, p[j].pPoints, sizeof Point3D * POLYGON_MAX_SIDES);
-			newArray[i].nPointsNum = p[j].nPointsNum;
-			newArray[i].color = p[j].color;
-		}
-		if (pPolygons) delete[] pPolygons;
+		CopyPolygons(newArray, pPolygons, nPolygonsNum);
+		CopyPolygons(newArray+ nPolygonsNum, pNew, num);
+
+		DeletePolygons(pPolygons, nPolygonsNum);
+
 		pPolygons = newArray;
 		nPolygonsNum += num;
 
@@ -1007,8 +1037,8 @@ public:
 			}
 		}
 
-		if (pPolygons)
-			delete[] pPolygons;
+		DeletePolygons(pPolygons, nPolygonsNum);
+
 		pPolygons = newArray;
 		nPolygonsNum--;
 
@@ -1048,7 +1078,7 @@ public:
 		pObjects = NULL;
 		nObjectsNum = 0;
 
-		pCamera = { 0,0,-200 };
+		pCamera = { 0,0,0 };
 		attitudeCamera = { 0,0,0 };
 
 		nViewportWidth = 640;
@@ -1289,11 +1319,9 @@ public:
 		for (int i = 0, index = 0; i < nObjectsNum; i++)
 		{
 			Polygon3D* pp = pObjects[i].GetPolygons();
-			for (int j = 0; j < pObjects[i].GetPolygonsNum(); j++)
-			{
-				p[index] = pp[j];
-				index++;
-			}
+			int num = pObjects[i].GetPolygonsNum();
+			CopyPolygons(p + index, pp, num);
+			index += num;
 		}
 		return p;
 	}
@@ -1320,8 +1348,9 @@ public:
 		// 平移到视口坐标系
 		pConverted = ConvertCoordinateSystem(pRotated, nAllPolygonsNum, pOriginViewport);
 
-		if (pAllPolygons)	delete[] pAllPolygons;
-		if (pRotated)		delete[] pRotated;
+		DeletePolygons(pAllPolygons, nAllPolygonsNum);
+		DeletePolygons(pRotated, nAllPolygonsNum);
+		
 		return pConverted;
 	}
 
@@ -1344,7 +1373,8 @@ public:
 			}
 		}
 
-		delete[] pPolygons;
+		DeletePolygons(pPolygons, nPolygonsNum);
+		
 		return pConverted;
 	}
 
@@ -1367,6 +1397,7 @@ public:
 		if (bPerspectiveProjection)
 		{
 			pShow = GetPerspectiveProjectionPolygons(pCrop, nCropNum, nFocalLength);
+			DeletePolygons(pCrop, nCropNum);
 		}
 		else
 		{
@@ -1376,11 +1407,8 @@ public:
 		// 多边形 z 轴层次排序
 		std::sort(pShow, pShow + nCropNum);
 
+		DeletePolygons(pPolygons, nPolygonsNum);
 		*count = nCropNum;
-		delete[] pPolygons;
-		if(bPerspectiveProjection)
-			delete[] pCrop;
-
 		return pShow;
 	}
 
@@ -1405,6 +1433,8 @@ public:
 			DrawFillPolygon(pPolygons[i], x, y, zoom, grid);
 		}
 
+		DeletePolygons(pPolygons, nPolygonsNum);
+		
 		return (double)(clock() - t) / CLOCKS_PER_SEC;
 	}
 
