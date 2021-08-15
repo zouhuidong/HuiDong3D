@@ -75,7 +75,11 @@ EasyX 图形库官网： easyx.cn
 
 ### 示例代码
 
-使用命名空间 HD3D
+我用 HuiDong3D 做了个简易的 Flappy Bird（3D 版），传送门：![FlappyBird3D](https://github.com/zouhuidong/FlappyBird3D)
+
+————
+
+HuiDong3D 使用命名空间 HD3D
 
 ```cpp
 
