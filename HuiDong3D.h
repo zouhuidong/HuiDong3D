@@ -25,8 +25,18 @@
 
 _HD3D_BEGIN
 
-// 多边形最大边数
+//////// 宏定义
+
+/**
+ * @brief 多边形最大边数
+*/
 #define POLYGON_MAX_SIDES 16
+
+/**
+ * @brief 渲染花费的最少时间（秒）
+ * @note 此值只在特殊情况下作为取值，不能改变所需渲染时间
+*/
+#define MIN_TIME_COST 1.0 / 9999
 
 //////// 基础类型定义
 
@@ -1390,17 +1400,28 @@ public:
 		int nCropNum = 0;
 		if (nPolygonsNum <= 0) return NULL;
 		Polygon3D* pPolygons = GetViewportNDCPolygons();
-		Polygon3D* pCrop = CropNDCPolygons(pPolygons,nPolygonsNum,nFocalLength,&nCropNum);
+		Polygon3D* pCrop = NULL;
 		Polygon3D* pShow = NULL;
 		
 		// 开启透视投影的话就进行计算
 		if (bPerspectiveProjection)
 		{
-			pShow = GetPerspectiveProjectionPolygons(pCrop, nCropNum, nFocalLength);
+			///////////////////////////////////////////////////////////////////////////////////
+			// 透视 bug 的暂时性解决方案：透视的时候使用二倍焦距，然后裁剪的时候只裁剪到一倍焦距    //
+			///////////////////////////////////////////////////////////////////////////////////
+
+			pCrop = CropNDCPolygons(pPolygons, nPolygonsNum, nFocalLength * 2, &nCropNum);
+			pShow = GetPerspectiveProjectionPolygons(pCrop, nCropNum, nFocalLength * 2);
+			Polygon3D* pCrop2 = CropNDCPolygons(pShow, nCropNum, nFocalLength, &nCropNum);
+
 			DeletePolygons(pCrop, nCropNum);
+			DeletePolygons(pShow, nCropNum);
+
+			pShow = pCrop2;
 		}
 		else
 		{
+			pCrop = CropNDCPolygons(pPolygons, nPolygonsNum, nFocalLength, &nCropNum);
 			pShow = pCrop;
 		}
 
@@ -1426,7 +1447,9 @@ public:
 
 		int nPolygonsNum = 0;
 		Polygon3D* pPolygons = GetRenderPolygons(&nPolygonsNum);
-		if (nPolygonsNum <= 0) return 0.00001;
+
+		if (nPolygonsNum <= 0)
+			return MIN_TIME_COST;
 
 		for (int i = nPolygonsNum - 1; i >= 0; i--)
 		{
@@ -1435,7 +1458,11 @@ public:
 
 		DeletePolygons(pPolygons, nPolygonsNum);
 		
-		return (double)(clock() - t) / CLOCKS_PER_SEC;
+		double cost = (double)(clock() - t);
+		if(cost <= 0)
+			cost = MIN_TIME_COST;
+
+		return cost / CLOCKS_PER_SEC;
 	}
 
 };
