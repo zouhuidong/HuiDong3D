@@ -1,5 +1,8 @@
 # HuiDong3D 渲染库
 
+[![Blog](https://img.shields.io/badge/blog-huidong.xyz-green.svg)](http://huidong.xyz)
+[![EasyX](https://img.shields.io/badge/graphics-EasyX-orange.svg)](https://easyx.cn)
+
 ## 目录
 
 * [HuiDong3D 渲染库](#huidong3d-渲染库)
